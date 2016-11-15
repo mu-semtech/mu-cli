@@ -1,0 +1,71 @@
+#!/bin/bash
+
+# Useful info found at http://www.linuxjournal.com/content/more-using-bash-complete-command
+
+mu_complete() {
+    local cmd="${1##*/}"
+    local word=${COMP_WORDS[COMP_CWORD]}
+    local line=${COMP_LINE}
+    local words=($line) # split line into words
+    local lastchar="${line: -1}"
+
+    case ${words[1]} in
+        project)
+            if [[ ${words[3]} == "" && $lastchar != " " ]]
+            then
+                COMPREPLY=(`compgen -W "start shell new" $word`)
+            else
+                if [[ ${words[2]} == "start" || ${words[2]} == "shell" ]]
+                then
+                    local projects=`ls ~/code/mu`
+                    COMPREPLY=(`compgen -W "$projects" $word`)
+                fi
+            fi
+            ;;
+        ember)
+            if [[ ${words[3]} == "" && $lastchar != " " ]]
+            then
+                COMPREPLY=(`compgen -W "start shell new" $word`)
+            else
+                if [[ ${words[2]} == "start" || ${words[2]} == "shell" ]]
+                then
+                    local projects=`ls ~/code/ember`
+                    COMPREPLY=(`compgen -W "$projects" $word`)
+                fi
+            fi
+            ;;
+        service)
+            if [[ ${words[3]} == "" && $lastchar != " " ]]
+            then
+                COMPREPLY=(`compgen -W "ruby" $word`)
+            else
+                if [[ ${words[3]} == "shell" ]]
+                then
+                    local projects=`ls ~/code/${words[2]}`
+                    COMPREPLY=(`compgen -W "$projects" $word`)
+                fi
+            fi
+            ;;
+        migration)
+            if [[ ${words[3]} == "" && $lastchar != " " ]]
+            then
+                COMPREPLY=(`compgen -W "new ls" $word`)
+            else
+                if [[ ${words[3]} == "" || ( ${words[4]} == "" && $lastchar != " " ) ]]
+                then
+                    local projects=`ls ~/code/mu`
+                    COMPREPLY=(`compgen -W "$projects" $word`)
+                elif [[ ${words[2]} != "new" ]]
+                then
+                    local migrations=`ls ~/code/mu/${words[3]}/config/migrations`
+                    COMPREPLY=(`compgen -W "$migrations" $word`)
+                fi
+            fi
+            ;;
+        *)
+            COMPREPLY=(`compgen -W "project ember service migration" $word`)
+            ;;
+    esac
+}
+
+complete -F mu_complete mu
