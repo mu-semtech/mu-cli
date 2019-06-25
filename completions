@@ -37,11 +37,14 @@ mu_complete() {
         service)
             if [[ ${words[3]} == "" && $lastchar != " " ]]
             then
-                COMPREPLY=(`compgen -W "ruby" $word`)
+                COMPREPLY=(`compgen -W "shell new" $word`)
             else
-                if [[ ${words[3]} == "shell" ]]
+                if [[ (${words[2]} == "shell" || ${words[2]} == "new" ) && ${words[4]} == "" ]]
                 then
-                    local projects=`ls ~/code/${words[2]}`
+                    COMPREPLY=(`compgen -W "ruby javascript" $word`)
+                elif [[ ${words[2]} == "shell" && ${words[3]} != "" ]]
+                then
+                    local projects=`ls ~/code/${words[3]}`
                     COMPREPLY=(`compgen -W "$projects" $word`)
                 fi
             fi

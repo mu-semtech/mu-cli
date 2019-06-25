@@ -60,9 +60,18 @@ then
         git add .
         git commit -m "Creating new mu project"
         echo "Your mu project hack gear is ready to be hacked... hack on"
+    elif [[ "doc" == $2 ]]
+    then
+        PROJECT_NAME=$3
+        echo "Generating documentation for $PROJECT_NAME"
+        cd ~/code/mu/$PROJECT_NAME/
+        docker run --rm -v `pwd`/config/resources:/config -v `pwd`/tmp:/config/output/ madnificent/cl-resources-plantuml-generator
+        echo "Generated JSONAPI svg"
+        docker run --rm -v `pwd`/config/resources:/config -v `pwd`/tmp:/config/output/ madnificent/cl-resources-ttl-generator
+        echo "Generated ttl file for http://visualdataweb.de/webvowl/"
     else
         echo "Don't know command $2"
-        echo "Known project commands: [ start, shell, new ]"
+        echo "Known project commands: [ start, shell, new, doc ]"
     fi
 elif [[ "service" == $1 ]]
 then
@@ -73,7 +82,7 @@ then
         LANGUAGE=$3
         SERVICE_NAME=$4
         echo "Opening service in language $LANGUAGE with name $SERVICE_NAME"
-        cd ~/code/ruby/$SERVICE_NAME
+        cd ~/code/$LANGUAGE/$SERVICE_NAME
     elif [[ "new" == $2 ]]
     then
         LANGUAGE=$3
@@ -115,9 +124,47 @@ then
             echo "      - \"/home/$USER/code/$LANGUAGE/$SERVICE_NAME/:/app\""
             echo ""
             echo "All set to to hack!"
+        elif [[ "javascript" == $LANGUAGE ]]
+        then
+            USER_NAME=`git config user.name`
+            EMAIL=`git config user.email`
+            USER=`whoami`
+            echo "Creating new javascript service for $SERVICE_NAME"
+            cd ~/code/javascript/
+            mkdir $SERVICE_NAME
+            cd $SERVICE_NAME
+            echo "FROM semtech/mu-javascript-template:1.3.5" >> Dockerfile
+            echo "MAINTAINER $USER_NAME <$EMAIL>" >> Dockerfile
+            echo "# see https://github.com/mu-semtech/mu-javascript-template for more info" >> Dockerfile
+            echo "# see https://github.com/mu-semtech/mu-javascript-template for more info" >> app.js
+            echo "" >> app.js
+            echo "import { app, query, errorHandler } from 'mu';" >> app.js
+            echo "" >> app.js
+            echo "app.get('/', function( req, res ) {" >> app.js
+            echo "  res.send('Hello mu-javascript-template');" >> app.js
+            echo "} );" >> app.js
+            git init .
+            git add .
+            git commit -m "Initializing new mu javascript service"
+            echo "You can add the following snippet in your pipeline"
+            echo "to hack this service live."
+            DOCKER_SERVICE_NAME=`echo $SERVICE_NAME | sed -e s/-//g`
+            echo ""
+            echo "  $DOCKER_SERVICE_NAME:"
+            echo "    image: semtech/mu-javascript-template:1.3.5"
+            echo "    links:"
+            echo "      - db:database"
+            echo "    ports:"
+            echo '      - "8888:80"'
+            echo "    environment:"
+            echo '      NODE_ENV: "development"'
+            echo "    volumes:"
+            echo "      - \"/home/$USER/code/$LANGUAGE/$SERVICE_NAME/:/app\""
+            echo ""
+            echo "All set to to hack!"
         else
             echo "Don't know language $LANGUAGE"
-            echo "Known languages: [ ruby ]"
+            echo "Known languages: [ ruby, js ]"
         fi
     else
         echo "Don't know service command $2"
