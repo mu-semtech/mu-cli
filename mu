@@ -134,15 +134,18 @@ then
             mkdir $SERVICE_NAME
             cd $SERVICE_NAME
             echo "FROM semtech/mu-javascript-template:1.3.5" >> Dockerfile
-            echo "MAINTAINER $USER_NAME <$EMAIL>" >> Dockerfile
+            echo "LABEL maintainer=\"$EMAIL\"" >> Dockerfile
+            echo "" >> Dockerfile
             echo "# see https://github.com/mu-semtech/mu-javascript-template for more info" >> Dockerfile
-            echo "# see https://github.com/mu-semtech/mu-javascript-template for more info" >> app.js
+            echo "// see https://github.com/mu-semtech/mu-javascript-template for more info" >> app.js
             echo "" >> app.js
             echo "import { app, query, errorHandler } from 'mu';" >> app.js
             echo "" >> app.js
             echo "app.get('/', function( req, res ) {" >> app.js
             echo "  res.send('Hello mu-javascript-template');" >> app.js
             echo "} );" >> app.js
+            echo "" >> app.js
+            echo "app.use(errorHandler);" >> app.js
             git init .
             git add .
             git commit -m "Initializing new mu javascript service"
