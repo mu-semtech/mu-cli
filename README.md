@@ -12,9 +12,12 @@ Helpers are available to start and stop a mu project.
 ## Installation
 Add `mu` to your path and source completions.
 
-    echo 'PATH="~/path/to/mu-cli/mu:$PATH"' >> ~/.bashrc
-    echo 'source ~/path/to/mu-cli/completions' >> ~/.bashrc
-  
+    git clone https://github.com/mu-semtech/mu-cli.git
+    cd mu-cli
+    echo "PATH=\"`pwd`/:\$PATH\"" >> ~/.bashrc
+    echo "source `pwd`/completions" >> ~/.bashrc
+    source ~/.bashrc
+
 This will ensure both are available and loaded.
 
 
