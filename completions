@@ -8,65 +8,52 @@ mu_complete() {
     local line=${COMP_LINE}
     local words=($line) # split line into words
     local lastchar="${line: -1}"
+    local wordcount=${#words[@]}
+
+    # echo "Words is ${words[0]},${words[1]},${words[2]},${words[3]},${words[4]} !!"
+
+    # echo "Word two is '${words[2]}'"
 
     case ${words[1]} in
         project)
-            if [[ ${words[3]} == "" && $lastchar != " " ]]
-            then
-                COMPREPLY=(`compgen -W "start shell new" $word`)
-            else
-                if [[ ${words[2]} == "start" || ${words[2]} == "shell" ]]
-                then
-                    local projects=`ls ~/code/mu`
-                    COMPREPLY=(`compgen -W "$projects" $word`)
-                fi
-            fi
-            ;;
-        ember)
-            if [[ ${words[3]} == "" && $lastchar != " " ]]
-            then
-                COMPREPLY=(`compgen -W "start shell new" $word`)
-            else
-                if [[ ${words[2]} == "start" || ${words[2]} == "shell" ]]
-                then
-                    local projects=`ls ~/code/ember`
-                    COMPREPLY=(`compgen -W "$projects" $word`)
-                fi
-            fi
+            case ${words[2]} in
+                new)
+                    ;;
+                doc)
+                    ;;
+                *)
+                    COMPREPLY=(`compgen -W "new doc" $word`)
+                    ;;
+            esac
             ;;
         service)
-            if [[ ${words[3]} == "" && $lastchar != " " ]]
-            then
-                COMPREPLY=(`compgen -W "shell new" $word`)
-            else
-                if [[ (${words[2]} == "shell" || ${words[2]} == "new" ) && ${words[4]} == "" ]]
-                then
-                    COMPREPLY=(`compgen -W "ruby javascript" $word`)
-                elif [[ ${words[2]} == "shell" && ${words[3]} != "" ]]
-                then
-                    local projects=`ls ~/code/${words[3]}`
-                    COMPREPLY=(`compgen -W "$projects" $word`)
-                fi
-            fi
+            case ${words[2]} in
+                new)
+                    case ${words[3]} in
+                        ruby)
+                            ;;
+                        javascript)
+                            ;;
+                        *)
+                            COMPREPLY=(`compgen -W "ruby javascript" $word`)
+                            ;;
+                    esac
+                    ;;
+                *)
+                    COMPREPLY=(`compgen -W "new" $word`)
+                    ;;
+            esac
             ;;
         migration)
-            if [[ ${words[3]} == "" && $lastchar != " " ]]
-            then
-                COMPREPLY=(`compgen -W "new ls" $word`)
-            else
-                if [[ ${words[3]} == "" || ( ${words[4]} == "" && $lastchar != " " ) ]]
-                then
-                    local projects=`ls ~/code/mu`
-                    COMPREPLY=(`compgen -W "$projects" $word`)
-                elif [[ ${words[2]} != "new" ]]
-                then
-                    local migrations=`ls ~/code/mu/${words[3]}/config/migrations`
-                    COMPREPLY=(`compgen -W "$migrations" $word`)
-                fi
-            fi
+            case ${words[2]} in
+                new)
+                    ;;
+                *)
+                COMPREPLY=(`compgen -W "new" $word`)
+            esac
             ;;
         *)
-            COMPREPLY=(`compgen -W "project ember service migration" $word`)
+            COMPREPLY=(`compgen -W "project service migration" $word`)
             ;;
     esac
 }
