@@ -2,6 +2,62 @@
 
 # Useful info found at http://www.linuxjournal.com/content/more-using-bash-complete-command
 
+function ensure_fresh_semtech_images() {
+    # check if the images cache is less than 20 hrs old
+    if test `find "mu-semte.ch.images" -mmin +1200`
+    then
+        get_mu_semtech_images
+    fi
+}
+
+function get_mu_semtech_images() {
+    images_array=`curl -s https://hub.docker.com/v2/repositories/semtech/?page_size=500 | jq '.results[].name'`
+
+    ac_image_list=""
+
+    for image in $(echo "$images_array" | jq '.'); do
+        if [[ $image == \"mu-* ]]; then # ignore all images that don't start with mu-
+            if [[ $image != *-template\" ]]; then # ignore all images that end with -template
+                cut_image_name=$(echo "$image" | sed 's/^\"\(.*\)\"$/\1/')
+                ac_image_list="$ac_image_list $cut_image_name"
+            fi
+        fi
+    done
+
+    echo "$ac_image_list" > mu-semte.ch.images
+}
+
+function ensure_fresh_image_tags() {
+    IMAGE=$1
+    # check that the file exists
+    if test -f "mu-semte.ch.$IMAGE.tags"; then
+        true
+    else
+        get_image_tags $IMAGE
+    fi
+    # check if the tags cache for the passed image cache is less than 20 hrs old
+    if test `find "mu-semte.ch.$IMAGE.tags" -mmin +1200`
+    then
+        get_image_tags $IMAGE
+    fi
+}
+
+function get_image_tags() {
+    IMAGE=$1
+    echo "loading tags for image: $IMAGE"
+    tags=`curl -s https://hub.docker.com/v2/repositories/semtech/$IMAGE/tags/?page_size=500 | jq '.results[].name'`
+
+    tag_list=""
+    for tag in $(echo "$tags" | jq '.'); do
+        cut_tag=$(echo "$tag" | sed 's/^\"\(.*\)\"$/\1/')
+        tag_list="$tag_list $cut_tag"
+    done
+
+    echo "$tag_list" > mu-semte.ch.$IMAGE.tags
+}
+
+get_mu_semtech_images
+
 mu_complete() {
     local cmd="${1##*/}"
     local word=${COMP_WORDS[COMP_CWORD]}
@@ -21,8 +77,27 @@ mu_complete() {
                     ;;
                 doc)
                     ;;
+                add)
+                    case ${words[3]} in
+                        service)
+                            if (( COMP_CWORD > 4 )); then
+                                IMAGE=${words[4]}
+                                ensure_fresh_image_tags $IMAGE
+                                ac_tag_list=$(<mu-semte.ch.$IMAGE.tags)
+                                COMPREPLY=(`compgen -W "$ac_tag_list" $word`)
+                            else
+                                ensure_fresh_semtech_images
+                                ac_image_list=$(<mu-semte.ch.images)
+                                COMPREPLY=(`compgen -W "$ac_image_list" $word`)
+                            fi
+                            ;;
+                        *)
+                            COMPREPLY=(`compgen -W "service" $word`)
+                            ;;
+                    esac
+                    ;;
                 *)
-                    COMPREPLY=(`compgen -W "new doc" $word`)
+                    COMPREPLY=(`compgen -W "new doc add" $word`)
                     ;;
             esac
             ;;
