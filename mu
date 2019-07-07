@@ -21,9 +21,32 @@ then
         echo "Generated JSONAPI svg"
         docker run --rm -v `pwd`/config/resources:/config -v `pwd`/tmp:/config/output/ madnificent/cl-resources-ttl-generator
         echo "Generated ttl file for http://visualdataweb.de/webvowl/"
+    elif [[ "add" == $2 ]]
+    then
+        if [[ "service" == $3 ]]; then
+            service_image=$4
+            service_tag=$5
+            service_name=`echo $service_image | sed -e s/-//g`
+            if [ -z "$service_tag" ]
+            then
+                service_tag="latest"
+            fi
+            echo "You can add the following snippet in your pipeline"
+            echo "to hack this service live."
+            echo ""
+            echo "  $service_name:"
+            echo "    image: semtech/$service_image:$service_tag"
+            echo "    links:"
+            echo "      - db:database"
+            echo ""
+            echo "All set to to hack!"
+        else
+            echo "To add a service use:"
+            echo "mu project add service [service name] [(optional) service tag]"
+        fi
     else
         echo "Don't know command $2"
-        echo "Known project commands: [ new, doc ]"
+        echo "Known project commands: [ new, doc, add ]"
     fi
 elif [[ "service" == $1 ]]
 then
