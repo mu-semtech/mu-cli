@@ -1,0 +1,15 @@
+#!/bin/bash
+
+MU_DB="$HOME/.mu/mu.db"
+
+mu_set () {
+    echo "$1,$2" >> "${MU_DB}"
+}
+
+mu_get () {
+    grep "^$1," "${MU_DB}" | sed -e "s/^$1,//" | tail -n 1
+}
+
+mu_get_all () {
+    tac "${MU_DB}" | grep "^$1," | sed -e "s/^$1,//"
+}
