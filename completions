@@ -6,22 +6,40 @@ function ensure_fresh_semtech_images() {
     # check if the images cache is less than 20 hrs old
     if test `find "/tmp/mu-semte.ch.images" -mmin +1200`
     then
-        get_mu_semtech_images
+        get_mu_info_images
     fi
 }
 
-function get_mu_semtech_images() {
-    images_array=`curl -s https://hub.docker.com/v2/repositories/semtech/?page_size=500 | jq '.results[].name'`
+function get_revisions_for_service() {
+    service=$1
+    revision_link=$2
+
+    tag_list=""
+    tags=`curl -s https://info.mu.semte.ch$revision_link | jq '.data[].attributes.version'`
+    for tag in $(echo "$tags" | jq '.'); do
+        stripped_tag="${tag:1:-1}"
+        tag_list="$tag_list $stripped_tag"
+    done
+
+    echo "$tag_list" > /tmp/mu-semte.ch.$service.tags
+}
+
+function get_mu_info_images() {
+    images_array=`curl -s https://info.mu.semte.ch/microservices | jq '.data[]'`
 
     ac_image_list=""
+    # all i want is 2 properties out of the object that gets parsed by jq
+    # TODO to this less ugly
+    for image in $(echo "$images_array" | jq '. | "\(.attributes.title)!\(.relationships.revisions.links.related)"'); do
+        image_title_quoted=${image%!*}
+        image_title="${image_title_quoted:1}"
+        revision_link_quoted=${image#*!}
+        revision_link="${revision_link_quoted::-1}"
 
-    for image in $(echo "$images_array" | jq '.'); do
-        if [[ $image == \"mu-* ]]; then # ignore all images that don't start with mu-
-            if [[ $image != *-template\" ]]; then # ignore all images that end with -template
-                cut_image_name=$(echo "$image" | sed 's/^\"\(.*\)\"$/\1/')
-                ac_image_list="$ac_image_list $cut_image_name"
-            fi
-        fi
+        # add the image title to the list of images
+        ac_image_list="$ac_image_list $image_title"
+        # populate the revisions file
+        get_revisions_for_service $image_title $revision_link
     done
 
     echo "$ac_image_list" > /tmp/mu-semte.ch.images
@@ -33,29 +51,16 @@ function ensure_fresh_image_tags() {
     if test -f "/tmp/mu-semte.ch.$IMAGE.tags"; then
         true
     else
-        get_image_tags $IMAGE
+        get_mu_info_images
     fi
     # check if the tags cache for the passed image cache is less than 20 hrs old
     if test `find "/tmp/mu-semte.ch.$IMAGE.tags" -mmin +1200`
     then
-        get_image_tags $IMAGE
+        get_mu_info_images
     fi
 }
 
-function get_image_tags() {
-    IMAGE=$1
-    tags=`curl -s https://hub.docker.com/v2/repositories/semtech/$IMAGE/tags/?page_size=500 | jq '.results[].name'`
-
-    tag_list=""
-    for tag in $(echo "$tags" | jq '.'); do
-        cut_tag=$(echo "$tag" | sed 's/^\"\(.*\)\"$/\1/')
-        tag_list="$tag_list $cut_tag"
-    done
-
-    echo "$tag_list" > /tmp/mu-semte.ch.$IMAGE.tags
-}
-
-get_mu_semtech_images
+ensure_fresh_semtech_images
 
 mu_complete() {
     local cmd="${1##*/}"
