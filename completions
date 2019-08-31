@@ -2,9 +2,11 @@
 
 # Useful info found at http://www.linuxjournal.com/content/more-using-bash-complete-command
 
+# TODO: document jq dependency
+
 function ensure_fresh_semtech_images() {
     # check if the images cache is less than 20 hrs old
-    if test `find "/tmp/mu-semte.ch.images" -mmin +1200`
+    if ! test -f /tmp/mu-semte.ch.images || test `find "/tmp/mu-semte.ch.images" -mmin +1200`
     then
         get_mu_info_images
     fi
