@@ -31,15 +31,20 @@ then
             then
                 service_tag="latest"
             fi
-            echo "You can add the following snippet in your pipeline"
-            echo "to hack this service live."
-            echo ""
-            echo "  $service_name:"
-            echo "    image: semtech/$service_image:$service_tag"
-            echo "    links:"
-            echo "      - db:database"
-            echo ""
-            echo "All set to to hack!"
+
+            # TODO: check if service is already in docker-compose.yml
+            # TODO: check if we are in a mu-project by verifying there is a docker-compose.yml
+            # TODO: allow service to provide their own installation template
+            # TODO: allow service to provide their own installation scripts
+
+            echo -n "Adding semtech/$service_image:$service_tag at $service_name ... "
+
+            echo "  $service_name:
+    image: semtech/$service_image:$service_tag
+    links:
+      - db:database" >> docker-compose.yml
+
+            echo "DONE"
         else
             echo "To add a service use:"
             echo "mu project add service [service name] [(optional) service tag]"
