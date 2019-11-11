@@ -3,6 +3,12 @@
 # Useful info found at http://www.linuxjournal.com/content/more-using-bash-complete-command
 
 function ensure_fresh_semtech_images() {
+    if test -f "/tmp/mu-semte.ch.images"; then
+        true
+    else
+        get_mu_info_images
+    fi
+
     # check if the images cache is less than 20 hrs old
     if test `find "/tmp/mu-semte.ch.images" -mmin +1200`
     then
