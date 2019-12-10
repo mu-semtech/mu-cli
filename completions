@@ -4,15 +4,13 @@
 
 function ensure_fresh_semtech_images() {
     if test -f "/tmp/mu-semte.ch.images"; then
-        true
+        # check if the images cache is less than 20 hrs old
+        if test `find "/tmp/mu-semte.ch.images" -mmin +1200`
+        then
+            get_mu_info_images &
+        fi
     else
-        get_mu_info_images
-    fi
-
-    # check if the images cache is less than 20 hrs old
-    if test `find "/tmp/mu-semte.ch.images" -mmin +1200`
-    then
-        get_mu_info_images
+        get_mu_info_images &
     fi
 }
 
@@ -57,12 +55,12 @@ function ensure_fresh_image_tags() {
     if test -f "/tmp/mu-semte.ch.$IMAGE.tags"; then
         true
     else
-        get_mu_info_images
+        get_mu_info_images &
     fi
     # check if the tags cache for the passed image cache is less than 20 hrs old
     if test `find "/tmp/mu-semte.ch.$IMAGE.tags" -mmin +1200`
     then
-        get_mu_info_images
+        get_mu_info_images &
     fi
 }
 
