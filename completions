@@ -2,7 +2,7 @@
 
 # Useful info found at http://www.linuxjournal.com/content/more-using-bash-complete-command
 
-sh -c "ensure-files.sh &"
+sh -c "dr run --volume /tmp:/tmp semtech/jq-ubuntu bash ensure-files.sh &"
 
 mu_complete() {
     local cmd="${1##*/}"
