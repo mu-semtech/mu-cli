@@ -1,6 +1,18 @@
 #!/bin/bash
 
-if [[ "project" == $1 ]]
+if [[ "start" == $1 ]]
+then
+    echo "Launching mu.semte.ch project ..."
+    if [[ "dev" == $2 ]]
+    then
+        docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+    else
+        docker-compose -f docker-compose.yml up -d
+    fi
+elif [[ "logs" == $1 ]]
+then
+    docker-compose logs -f $2 $3 $4 $5 $6 $7 $8
+elif [[ "project" == $1 ]]
 then
     echo "Mu project commands"
     if [[ "new" == $2 ]]

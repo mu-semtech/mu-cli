@@ -71,8 +71,16 @@ mu_complete() {
                 COMPREPLY=(`compgen -W "new" $word`)
             esac
             ;;
+        start)
+            case ${words[2]} in
+                dev)
+                ;;
+                *)
+                    COMPREPLY=(`compgen -W "dev" $word`)
+            esac
+            ;;
         *)
-            COMPREPLY=(`compgen -W "project service migration" $word`)
+            COMPREPLY=(`compgen -W "project migration service start" $word`)
             ;;
     esac
 }
