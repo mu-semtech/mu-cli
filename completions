@@ -2,7 +2,61 @@
 
 # Useful info found at http://www.linuxjournal.com/content/more-using-bash-complete-command
 
-sh -c "dr run --volume /tmp:/tmp semtech/mu-cli bash ensure-files.sh &"
+sh -c "docker run --volume /tmp:/tmp semtech/mu-cli:testversion bash ensure-files.sh &"
+
+# I use variables that start with retval to indicate that they are only used to
+# populate the return value for the function whose name is the second part of the
+# variable name
+retval_get_image_list=""
+retval_get_repository_list=()
+retval_get_tags_for_image=""
+retval_get_commands_for_image=""
+
+get_image_list() {
+    retval_get_image_list=""
+    get_repository_list
+    for repository_name in $(echo $retval_get_repository_list); do
+        repo_image_list=$(</tmp/musemtech/$repository_name.images)
+        retval_get_image_list="$retval_get_image_list $repo_image_list"
+    done
+}
+
+get_repository_list() {
+    retval_get_repository_list=()
+
+    # should be done for each repository name
+    repository="http://identifier"
+    repository_name="${repository//https:\/\/}"
+    repository_name="${repository_name//http:\/\/}"
+    retval_get_repository_list+=($repository_name)
+}
+
+get_tags_for_image() {
+    image_name=$1
+    retval_get_tags_for_image=""
+    for filename in $(find /tmp/musemtech/ -name "*.$image_name.tags"); do
+        tags_in_file=$(<$filename)
+        retval_get_tags_for_image="$retval_get_tags_for_images $tags_in_file"
+    done
+}
+
+get_commands_for_image() {
+    image_name=$1
+    retval_get_commands_for_image=""
+    for filename in $(find /tmp/musemtech/ -name "*.$image_name.commands"); do
+        commands_in_file=$(<$filename)
+        SAVEIFS=$IFS   # Save current IFS
+        IFS=$'\n'      # Change IFS to new line
+        command_lines=($commands_in_file) # split to array $names
+        IFS=$SAVEIFS   # Restore IFS
+        for ((i = 0; i < ${#command_lines[@]}; i++))
+        do
+            command_line="${command_lines[$i]}"
+            cmd=$(echo $command_line |sed 's/,.*//')
+            retval_get_commands_for_image="$retval_get_commands_for_image $cmd"
+        done
+    done
+}
 
 mu_complete() {
     local cmd="${1##*/}"
@@ -28,11 +82,11 @@ mu_complete() {
                         service)
                             if (( COMP_CWORD > 4 )); then
                                 IMAGE=${words[4]}
-                                ac_tag_list=$(</tmp/mu-semte.ch.$IMAGE.tags)
-                                COMPREPLY=(`compgen -W "$ac_tag_list" $word`)
+                                get_tags_for_image $IMAGE
+                                 COMPREPLY=(`compgen -W "$retval_get_tags_for_image" $word`)
                             else
-                                ac_image_list=$(</tmp/mu-semte.ch.images)
-                                COMPREPLY=(`compgen -W "$ac_image_list" $word`)
+                                get_image_list
+                                 COMPREPLY=(`compgen -W "$retval_get_image_list" $word`)
                             fi
                             ;;
                         *)
@@ -55,6 +109,19 @@ mu_complete() {
                             ;;
                         *)
                             COMPREPLY=(`compgen -W "ruby javascript" $word`)
+                            ;;
+                    esac
+                    ;;
+                snippet)
+                    case ${words[3]} in
+                        compose)
+                        ;;
+                        creation)
+                        ;;
+                        development)
+                        ;;
+                        *)
+                            COMPREPLY=(`compgen -W "compose creation development" $word`)
                             ;;
                     esac
                     ;;
@@ -85,4 +152,31 @@ mu_complete() {
     esac
 }
 
+mu_service_complete() {
+    local cmd="${1##*/}"
+    local word=${COMP_WORDS[COMP_CWORD]}
+    local line=${COMP_LINE}
+    local words=($line) # split line into words
+    local lastchar="${line: -1}"
+    local wordcount=${#words[@]}
+
+    # echo "Words is ${words[0]},${words[1]},${words[2]},${words[3]},${words[4]} !!"
+
+    # echo "Word two is '${words[2]}'"
+
+    if (( COMP_CWORD > 1 )); then
+        service=${words[1]}
+        get_commands_for_image $service
+        COMPREPLY=(`compgen -W "$retval_get_commands_for_image" $word`)
+    else
+        case ${words[1]} in
+            *)
+                get_image_list
+                COMPREPLY=(`compgen -W "$retval_get_image_list" $word`)
+                ;;
+        esac
+    fi
+}
+
 complete -F mu_complete mu
+complete -F mu_service_complete mus
