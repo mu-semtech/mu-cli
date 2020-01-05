@@ -52,6 +52,16 @@ then
             echo "      - db:database"
             echo ""
             echo "All set to to hack!"
+            for filename in $(find /tmp/musemtech/ -name "*.$service_image.installation_script"); do
+                installation_script_location=$(<$filename)
+                if [[ "null" == $installation_script_location ]]; then
+                    exit 0
+                else
+                    echo "Executing installation script."
+                    curl $installation_script_location > /tmp/install_service.sh
+                    bash /tmp/install_service.sh
+                fi
+            done
         else
             echo "To add a service use:"
             echo "mu project add service [service name] [(optional) service tag]"

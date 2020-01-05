@@ -1,0 +1,25 @@
+#!/bin/bash
+
+service=$1
+cmd=$2
+
+for filename in $(find /tmp/musemtech/ -name "*.$service.commands"); do
+    commands_in_file=$(<$filename)
+    SAVEIFS=$IFS   # Save current IFS
+    IFS=$'\n'      # Change IFS to new line
+    command_lines=($commands_in_file) # split to array $names
+    IFS=$SAVEIFS   # Restore IFS
+    for ((i = 0; i < ${#command_lines[@]}; i++)); do
+        command_line="${command_lines[$i]}"
+        command_name=$(echo $command_line | cut -d ',' -f1)
+        command_name="${command_name//\"/}"
+        command_line=$(echo $command_line | cut -d ',' -f2)
+        if [[ $cmd == $command_name ]]
+        then
+          sh -c "$command_line"
+          exit 0
+        fi
+    done
+done
+
+echo "command not found"
