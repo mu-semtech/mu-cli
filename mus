@@ -1,25 +1,28 @@
 #!/bin/bash
 
 service=$1
-cmd=$2
-
-for filename in $(find /tmp/musemtech/ -name "*.$service.commands"); do
-    commands_in_file=$(<$filename)
-    SAVEIFS=$IFS   # Save current IFS
-    IFS=$'\n'      # Change IFS to new line
-    command_lines=($commands_in_file) # split to array $names
-    IFS=$SAVEIFS   # Restore IFS
-    for ((i = 0; i < ${#command_lines[@]}; i++)); do
-        command_line="${command_lines[$i]}"
-        command_name=$(echo $command_line | cut -d ',' -f1)
-        command_name="${command_name//\"/}"
-        command_line=$(echo $command_line | cut -d ',' -f2)
-        if [[ $cmd == $command_name ]]
-        then
-          sh -c "$command_line"
-          exit 0
-        fi
-    done
-done
-
-echo "command not found"
+command=$2
+echo -n "Executing "
+container_id=`docker-compose ps -q migrations`
+mkdir -p /tmp/mu/cache/$container_id
+docker cp $container_id:/app/scripts /tmp/mu/cache/$container_id
+cat_command="cat /tmp/mu/cache/$container_id/scripts/config.json"
+jq_command="jq -c '( .scripts[] | select(.documentation.command == \\\"$command\\\") )'"
+command_spec=`sh -c "docker run --volume /tmp:/tmp --rm semtech/mu-cli:testversion bash -c \"$cat_command | $jq_command\""`
+echo -n "."
+app_mount_point=`echo "$command_spec" | docker run --volume /tmp:/tmp --rm -i --entrypoint "/usr/bin/jq" semtech/mu-cli:testversion -r .mounts.app`
+app_folder="$PWD"
+echo -n "."
+script_path=`echo "$command_spec" | docker run --volume /tmp:/tmp --rm -i --entrypoint "/usr/bin/jq" semtech/mu-cli:testversion -r .environment.script`
+echo -n "."
+script_folder_name=`dirname $script_path`
+script_file_name=`basename $script_path`
+folder_name="$script_folder_name"
+entry_point="$script_file_name"
+working_directory="/script"
+arguments="${@:3}"
+echo -n "."
+image_name=`echo "$command_spec" | docker run --volume /tmp:/tmp --rm -i --entrypoint "/usr/bin/jq" semtech/mu-cli:testversion -r .environment.image`
+echo ""
+docker run --volume $PWD:$app_mount_point --volume /tmp/mu/cache/$container_id/scripts/$folder_name:/script -it -w $working_directory --rm --entrypoint ./$entry_point $image_name $arguments
+rm -rf /tmp/mu/cache/$container_id
