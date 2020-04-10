@@ -192,5 +192,5 @@ then
     fi
 else
     echo "Don't know command $1"
-    echo "Known commands [ project, service, migration ]"
+    echo "Known commands [ project, service, script ]"
 fi
