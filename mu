@@ -190,22 +190,6 @@ then
         echo "Don't know service command $2"
         echo "Known commands: [ shell, new ]"
     fi
-elif [[ $1 == "migration" ]]
-then
-    if [[ $2 == "new" ]]
-    then
-        MIGRATION_NAME=$3
-        MIGRATION_TIMESTAMP=`date +%Y%0m%0d%0H%0M%0S`
-        FILENAME="$MIGRATION_TIMESTAMP-$MIGRATION_NAME.sparql"
-        echo "Creating migration with name $FILENAME"
-        mkdir -p config/migrations/
-        cd config/migrations/
-        touch $FILENAME
-        echo "config/migrations/$FILENAME"
-    else
-        echo "Don't know migration command $2"
-        echo "Known commands: [ new ]"
-    fi
 else
     echo "Don't know command $1"
     echo "Known commands [ project, service, migration ]"
