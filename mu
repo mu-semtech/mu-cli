@@ -75,7 +75,7 @@ then
     service=$2
     command=$3
     echo -n "Executing "
-    container_id=`docker-compose ps -q migrations`
+    container_id=`docker-compose ps -q $service`
     mkdir -p /tmp/mu/cache/$container_id
     docker cp $container_id:/app/scripts /tmp/mu/cache/$container_id
     cat_command="cat /tmp/mu/cache/$container_id/scripts/config.json"
