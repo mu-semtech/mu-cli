@@ -76,6 +76,11 @@ then
     command=$3
     echo -n "Executing "
     container_id=`docker-compose ps -q $service`
+    if [[ -z $container_id ]] ;
+    then
+        echo "Error could not find service $2, please make sure that the service with name \"$2\" exists in your current mu project."
+        exit 1
+    fi
     mkdir -p /tmp/mu/cache/$container_id
     docker cp $container_id:/app/scripts /tmp/mu/cache/$container_id
     cat_command="cat /tmp/mu/cache/$container_id/scripts/config.json"
