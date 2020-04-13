@@ -74,17 +74,27 @@ elif [[ "script" == $1 ]]
 then
     service=$2
     command=$3
-    echo -n "Executing "
     container_id=`docker-compose ps -q $service`
     if [[ -z $container_id ]] ;
     then
-        echo ""
         echo "Error could not find service $service, please make sure that the service with name \"$service\" exists in your current mu project."
         exit 1
     fi
     mkdir -p /tmp/mu/cache/$container_id
     docker cp $container_id:/app/scripts /tmp/mu/cache/$container_id
     cat_command="cat /tmp/mu/cache/$container_id/scripts/config.json"
+    if [[ "-h" == $command ]] ;
+    then
+        echo "The commands supported by $service are listed below."
+        echo "you can invoke them by typing 'mu script $service [COMMAND]'."
+        echo ""
+        echo "Service $service supports the following commands:"
+        jq_command="jq -r '( .scripts[].documentation.command )'"
+        supported_commands=`sh -c "docker run --volume /tmp:/tmp --rm semtech/mu-cli:testversion bash -c \"$cat_command | $jq_command\""`
+        echo $supported_commands
+        exit 0
+    fi
+    echo -n "Executing "
     jq_command="jq -c '( .scripts[] | select(.documentation.command == \\\"$command\\\") )'"
     command_spec=`sh -c "docker run --volume /tmp:/tmp --rm semtech/mu-cli:testversion bash -c \"$cat_command | $jq_command\""`
     if [[ -z $command_spec ]] ;
