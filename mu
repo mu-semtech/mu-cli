@@ -78,7 +78,8 @@ then
     container_id=`docker-compose ps -q $service`
     if [[ -z $container_id ]] ;
     then
-        echo "Error could not find service $2, please make sure that the service with name \"$2\" exists in your current mu project."
+        echo ""
+        echo "Error could not find service $service, please make sure that the service with name \"$service\" exists in your current mu project."
         exit 1
     fi
     mkdir -p /tmp/mu/cache/$container_id
@@ -86,6 +87,12 @@ then
     cat_command="cat /tmp/mu/cache/$container_id/scripts/config.json"
     jq_command="jq -c '( .scripts[] | select(.documentation.command == \\\"$command\\\") )'"
     command_spec=`sh -c "docker run --volume /tmp:/tmp --rm semtech/mu-cli:testversion bash -c \"$cat_command | $jq_command\""`
+    if [[ -z $command_spec ]] ;
+    then
+        echo ""
+        echo "Error could not find command: $command for service: $service. Please refer to the documentation of the mu service to check the commands available or run 'mu script $service -h'"
+        exit 1
+    fi
     echo -n "."
     app_mount_point=`echo "$command_spec" | docker run --volume /tmp:/tmp --rm -i --entrypoint "/usr/bin/jq" semtech/mu-cli:testversion -r .mounts.app`
     app_folder="$PWD"
