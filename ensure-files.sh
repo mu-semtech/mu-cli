@@ -42,30 +42,6 @@ function get_revisions_for_service() {
     echo "$tag_list" > /tmp/musemtech/$repository_name.$service.tags
 }
 
-function get_commands_for_service() {
-    service=$1
-    commands_link=$2
-
-    line_list=""
-    commands_response=`curl -s $repository$commands_link | jq '.data[]'`
-
-    commands=$(echo "$commands_response" | jq '. | "\(.attributes.title),\(.attributes."shell-command"),\(.attributes.description)"')
-    SAVEIFS=$IFS   # Save current IFS
-    IFS=$'\n'      # Change IFS to new line
-    commands=($commands) # split to array $names
-    IFS=$SAVEIFS   # Restore IFS
-    for ((i = 0; i < ${#commands[@]}; i++))
-    do
-        line="${commands[$i]}"
-        if [ "$i" -eq 0 ]
-        then
-            echo "$line" > /tmp/musemtech/$repository_name.$service.commands
-        else
-            echo "$line" >> /tmp/musemtech/$repository_name.$service.commands
-        fi
-    done
-}
-
 function get_mu_info_images() {
     images_array=`curl -s $repository/microservices | jq '.data[]'`
 
@@ -81,14 +57,6 @@ function get_mu_info_images() {
         ac_image_list="$ac_image_list $image_title"
         # populate the revisions file
         get_revisions_for_service $image_title $revision_link
-    done
-
-    for image in $(echo "$images_array" | jq '. | "\(.attributes.title)!\(.relationships.commands.links.related)"'); do
-        image_title_quoted=${image%!*}
-        image_title="${image_title_quoted:1}"
-        commands_link_quoted=${image#*!}
-        commands_link="${commands_link_quoted::-1}"
-        get_commands_for_service $image_title $commands_link
     done
 
     for image in $(echo "$images_array" | jq '. | "\(.attributes.title)!\(.attributes."installation-script")"'); do
