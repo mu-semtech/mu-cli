@@ -136,7 +136,14 @@ then
     echo -n "."
     image_name=`echo "$command_spec" | $interactive_cli jq -r .environment.image`
     echo ""
-    docker run --volume $PWD:$app_mount_point --volume /tmp/mu/cache/$container_id/scripts/$folder_name:/script -it -w $working_directory --rm --entrypoint ./$entry_point $image_name $arguments
+    interactive_mode=`echo "$command_spec" | $interactive_cli jq -r '.environment.interactive // false'`
+    it=""
+    if [[ true = "$interactive_mode" ]];
+    then
+        it=" -it "
+    fi
+
+    docker run --volume $PWD:$app_mount_point --volume /tmp/mu/cache/$container_id/scripts/$folder_name:/script $it -w $working_directory --rm --entrypoint ./$entry_point $image_name $arguments
 elif [[ "service" == $1 ]]
 then
     echo "Mu service commands"
