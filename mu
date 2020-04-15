@@ -72,6 +72,15 @@ then
     fi
 elif [[ "script" == $1 ]]
 then
+    mu_cli_version="latest"
+    container_hash=`docker ps -f "name=mucli" -q`
+
+    jq_documentation_filter_commands="jq -r '( .scripts[].documentation.command )'"
+    if [[ -z $container_hash ]] ;
+    then
+        docker run --volume /tmp:/tmp -i --name mucli --rm --entrypoint "tail" -d semtech/mu-cli:$mu_cli_version -f /dev/null
+    fi
+
     service=$2
     command=$3
     container_id=`docker-compose ps -q $service`
@@ -83,20 +92,20 @@ then
     mkdir -p /tmp/mu/cache/$container_id
     docker cp $container_id:/app/scripts /tmp/mu/cache/$container_id
     cat_command="cat /tmp/mu/cache/$container_id/scripts/config.json"
+    interactive_cli="docker exec -i mucli"
     if [[ "-h" == $command ]] ;
     then
         echo "The commands supported by $service are listed below."
         echo "you can invoke them by typing 'mu script $service [COMMAND]'."
         echo ""
         echo "Service $service supports the following commands:"
-        jq_command="jq -r '( .scripts[].documentation.command )'"
-        supported_commands=`sh -c "docker run --volume /tmp:/tmp --rm semtech/mu-cli:testversion bash -c \"$cat_command | $jq_command\""`
+        supported_commands=`sh -c "$interactive_cli bash -c \"$cat_command | $jq_documentation_filter_commands\""`
         echo $supported_commands
         exit 0
     fi
     echo -n "Executing "
     jq_command="jq -c '( .scripts[] | select(.documentation.command == \\\"$command\\\") )'"
-    command_spec=`sh -c "docker run --volume /tmp:/tmp --rm semtech/mu-cli:testversion bash -c \"$cat_command | $jq_command\""`
+    command_spec=`sh -c "$interactive_cli bash -c \"$cat_command | $jq_command\""`
     if [[ -z $command_spec ]] ;
     then
         echo ""
@@ -104,10 +113,10 @@ then
         exit 1
     fi
     echo -n "."
-    app_mount_point=`echo "$command_spec" | docker run --volume /tmp:/tmp --rm -i --entrypoint "/usr/bin/jq" semtech/mu-cli:testversion -r .mounts.app`
+    app_mount_point=`echo "$command_spec" | $interactive_cli jq -r .mounts.app`
     app_folder="$PWD"
     echo -n "."
-    script_path=`echo "$command_spec" | docker run --volume /tmp:/tmp --rm -i --entrypoint "/usr/bin/jq" semtech/mu-cli:testversion -r .environment.script`
+    script_path=`echo "$command_spec" | $interactive_cli jq -r .environment.script`
     echo -n "."
     script_folder_name=`dirname $script_path`
     script_file_name=`basename $script_path`
@@ -116,7 +125,7 @@ then
     working_directory="/script"
     arguments="${@:4}"
     echo -n "."
-    image_name=`echo "$command_spec" | docker run --volume /tmp:/tmp --rm -i --entrypoint "/usr/bin/jq" semtech/mu-cli:testversion -r .environment.image`
+    image_name=`echo "$command_spec" | $interactive_cli jq -r .environment.image`
     echo ""
     docker run --volume $PWD:$app_mount_point --volume /tmp/mu/cache/$container_id/scripts/$folder_name:/script -it -w $working_directory --rm --entrypoint ./$entry_point $image_name $arguments
     rm -rf /tmp/mu/cache/$container_id
