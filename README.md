@@ -16,7 +16,7 @@ Add `mu` to your path and source completions.
     echo "PATH=\"`pwd`/:\$PATH\"" >> ~/.bashrc
     source ~/.bashrc
 
-You now hav the `mu` command on your system.
+You now have the `mu` command on your system.
 
 ### Creating a project
 
@@ -25,7 +25,7 @@ The mu command can help you create a new project.  Move into a folder of your li
     cd ~/code/mu/
     mu project new getting-started
 
-The available commands depend on your project.  In a new mu-project, the migrations service will offer you a command.  Let's create a new mu-project so we have a solid startingpoint.
+The available commands depend on your project.  In a new mu-project, the migrations service will offer you a command.  Let's create a new mu-project so we have a solid starting point.
 
 Visiting the project, we can see the standard services in the `mu-project`.
 
@@ -38,7 +38,7 @@ Common services can be installed through the cli.  You can request the current v
 
     mu project add service migrations
 
-You are greeted with a copy-pastable section to add this service to your project.  Copy-paste this snippet into the services section of your docker-compose.yml and ensure the indentation is correct.
+You are greeted with a copy-paste section to add this service to your project.  Copy-paste this snippet into the services section of your docker-compose.yml and ensure the indentation is correct.
 
 Future versions of `mu` will insert this snippet for you.
 
@@ -66,7 +66,7 @@ We will go about this in three steps.  First we mount the scripts locally.  Then
 
 #### A local development setup
 
-You can develop scripts to add to your project, and you can develop them live by mounting the right folders.  Let's create a script to add to the dispatcher.  Assuming we can live without the current scripts of the dispatcher, we can override the current script by mounting a scripts folder.  Add the following mountpoint to the dispatcher:
+You can develop scripts to add to your project, and you can develop them live by mounting the right folders.  Let's create a script to add to the dispatcher.  Assuming we can live without the current scripts of the dispatcher, we can override the current script by mounting a scripts folder.  Add the following mount-point to the dispatcher:
 
     volumes:
       - ./scripts/dispatcher/:/scripts/
@@ -102,7 +102,7 @@ Move the following script into the `./scripts/dispatcher/config.json` folder:
       ]
     }
 
-Important things mentioned here are the mount point for `"app"`, this will mount our mu-project in the `"/data/app/"` folder so we can manipulate the files of our project.  Also note that we indicate the script to run and the image in which to run it, you can use any image and have any set of preïnstalled content in there.  The documentation section is used when running `mu project script dispatcher -h`.
+Important things mentioned here are the mount point for `"app"`, this will mount our mu-project in the `"/data/app/"` folder so we can manipulate the files of our project.  Also note that we indicate the script to run and the image in which to run it, you can use any image and have any set of preinstalled content in there.  The documentation section is used when running `mu project script dispatcher -h`.
 
 #### Implementing the script
 
@@ -111,7 +111,7 @@ As specified in our metadata, our script will be stored in `./scripts/dispatcher
 Our script will replace the line `    send_resp( conn, 404, "Route not found.  See config/dispatcher.ex" )` with a new line like `Proxy.forward conn, path, "https://semantic.works/"`.  Not the best approach, but it will suffice:
 
     #!/bin/bash
-    sed -i 's/\\s+send_resp( conn, 404, "Route not found.  See config\\/dispatcher.ex" )/Proxy.forward conn, path, "https:\\/\\/semantic.works\\/"/' /data/app/config/dispatcher/dispatcher.ex
+    sed -i -e 's/send_resp( conn, 404, "Route not found.  See config\/dispatcher.ex" )/Proxy.forward conn, path, "https:\/\/semantic.works\/"/' /data/app/config/dispatcher/dispatcher.ex
 
 With that file in place, we can ensure the execution bit is set on the file and run it through mu-cli!
 
@@ -133,7 +133,7 @@ When writing a script you may want to read information from the user.  When usin
     read -p "Please enter your name: " NAME
     echo "Your name is $NAME but I could have used it for something better than printing a command"
 
-Be sure to set the `interactive` option on your comamnd to `true`.
+Be sure to set the `interactive` option on your command to `true`.
 
 
 ## Reasoning
