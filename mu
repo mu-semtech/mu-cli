@@ -86,7 +86,12 @@ then
     container_id=`docker-compose ps -q $service`
     if [[ -z $container_id ]] ;
     then
-        echo "Error could not find service $service, please make sure that the service with name \"$service\" exists in your current mu project."
+        available_services=`docker-compose ps --services`
+        echo "Error could not find an existing container for service $service."
+        echo "I found containers for the following services:"
+        echo "$available_services"
+        echo ""
+        echo "You may want to run 'docker-compose up -d' to make sure the containers exist."
         exit 1
     fi
     mkdir -p /tmp/mu/cache/$container_id
@@ -110,6 +115,10 @@ then
     then
         echo ""
         echo "Error could not find command: $command for service: $service. Please refer to the documentation of the mu service to check the commands available or run 'mu script $service -h'"
+        jq_command="jq -r '( .scripts[].documentation.command )'"
+        supported_commands=`sh -c "$interactive_cli bash -c \"$cat_command | $jq_command\""`
+        echo "The following commands are supported by the service $service:"
+        echo $supported_commands
         exit 1
     fi
     echo -n "."
