@@ -50,11 +50,11 @@ We can list the commands to execute with the -h option.
 
     docker-compose up -d
 
-    mu script migration -h
+    mu script migrations -h
 
 You are listed with the scripts your newly installed migrations service supports.  Note that the scripts may differ between versions.  We will run the new command and supply it with the name for our migration:
 
-    mu script migration new hello-world
+    mu script migrations new hello-world
 
 And there you have it, a new migration file is born.  No need to search for the right variable name.
 
