@@ -14,6 +14,7 @@ Add `mu` to your path and source completions.
     git clone https://github.com/mu-semtech/mu-cli.git
     cd mu-cli
     echo "PATH=\"`pwd`/:\$PATH\"" >> ~/.bashrc
+    echo "source `pwd`/completions" >> ~/.bashrc
     source ~/.bashrc
 
 You now have the `mu` command on your system.
