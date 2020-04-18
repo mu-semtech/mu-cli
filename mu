@@ -312,5 +312,5 @@ then
     fi
 else
     echo "Don't know command $1"
-    echo "Known commands [ project, service, script ]"
+    echo "Known commands [ project, logs, service, script, start ]"
 fi
