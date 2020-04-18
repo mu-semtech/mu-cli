@@ -166,6 +166,13 @@ then
 
     ensure_mu_cli_docker
 
+    if [[ "-h" == $service ]] || [[ -z $service ]] ;
+    then
+        echo ""
+        print_available_services_information
+        exit 0
+    fi
+
     container_id=`docker-compose ps -q $service`
     if [[ -z $container_id ]] ;
     then
