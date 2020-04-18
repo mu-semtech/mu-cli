@@ -2,7 +2,7 @@
 
 # Useful info found at http://www.linuxjournal.com/content/more-using-bash-complete-command
 
-sh -c "docker run --volume /tmp:/tmp semtech/mu-cli:testversion bash ensure-files.sh &"
+sh -c "docker run --volume /tmp:/tmp semtech/mu-cli bash ensure-files.sh &"
 
 # I use variables that start with retval to indicate that they are only used to
 # populate the return value for the function whose name is the second part of the
