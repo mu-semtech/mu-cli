@@ -81,6 +81,15 @@ then
     if [[ "new" == $2 ]]
     then
         PROJECT_NAME=$3
+        if [[ -z "$PROJECT_NAME" ]]
+        then
+            print_text_block "Please specify a project name." \
+                             "" \
+                             "The expected usage for this command is:" \
+                             "  mu project new [project name]"
+            exit 1
+        fi
+        
         echo "Creating new mu project for $PROJECT_NAME"
         git clone https://github.com/mu-semtech/mu-project.git $PROJECT_NAME
         cd $PROJECT_NAME
