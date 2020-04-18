@@ -9,12 +9,25 @@ First we install mu-cli, then we use it to create a new migration.  As a last st
 
 ### Installation
 
+#### Bash shell
 Add `mu` to your path and source completions.
 
     git clone https://github.com/mu-semtech/mu-cli.git
     cd mu-cli
     echo "PATH=\"`pwd`/:\$PATH\"" >> ~/.bashrc
+    echo "source `pwd`/completions" >> ~/.bashrc
     source ~/.bashrc
+
+You now have the `mu` command on your system.
+
+#### ZSH shell
+Add `mu` to your path and source completions.
+
+    git clone https://github.com/mu-semtech/mu-cli.git
+    cd mu-cli
+    echo "PATH=\"`pwd`/:\$PATH\"" >> ~/.zshrc
+    echo "source `pwd`/completions" >> ~/.zshrc
+    source ~/.zshrc
 
 You now have the `mu` command on your system.
 
