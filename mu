@@ -1,5 +1,67 @@
 #!/bin/bash
 
+function print_text_block() {
+    for var in "$@"
+    do
+        echo "$var"
+    done
+}
+
+function ensure_mu_cli_docker() {
+    echo ""
+}
+
+function print_commands_documentation() {
+    command=$1
+    jq_documentation_get_command_local="jq -c '( .scripts[] | select(.documentation.command == \\\"$command\\\") )'"
+    command_documentation=`sh -c "$interactive_cli bash -c \"$local_cat_command | $jq_documentation_get_command_local\""`
+    command_description=`echo "$command_documentation" | $interactive_cli $jq_documentation_get_description`
+    command_arguments=`echo "$command_documentation" | $interactive_cli $jq_documentation_get_arguments`
+    print_text_block "  $command:" \
+                     "    description: $command_description"
+    echo -n "    command: mu script $available_service $command"
+    for command_argument in $command_arguments
+    do
+        echo -n " [$command_argument]"
+    done
+}
+
+function print_service_documentation() {
+    service=$1
+    available_container_id=`docker-compose ps -q $service`
+    mkdir -p /tmp/mu/cache/$available_container_id
+    docker cp $available_container_id:/app/scripts /tmp/mu/cache/$available_container_id 2> /dev/null
+    local_cat_command="cat /tmp/mu/cache/$available_container_id/scripts/config.json"
+    if test -f "/tmp/mu/cache/$available_container_id/scripts/config.json"; then
+        supported_commands=`sh -c "$interactive_cli bash -c \"$local_cat_command | $jq_documentation_filter_commands\""`
+        for supported_command in $supported_commands
+        do
+            print_commands_documentation $supported_command
+            print_text_block "" ""
+        done
+        echo ""
+    else
+        print_text_block "  no scripts found" \
+                         ""
+    fi
+}
+
+function print_available_services_information() {
+    interactive_cli="docker exec -i mucli"
+    jq_documentation_filter_commands="jq -r '( .scripts[].documentation.command )'"
+    jq_documentation_get_description="jq -r .documentation.description"
+    jq_documentation_get_arguments="jq -r .documentation.arguments[]"
+    echo "...looking for containers..."
+    available_services=`docker-compose ps --services`
+    echo ""
+    echo "found services:"
+    for available_service in $available_services
+    do
+        print_text_block "$available_service:"
+        print_service_documentation $available_service
+    done
+}
+
 if [[ "start" == $1 ]]
 then
     echo "Launching mu.semte.ch project ..."
@@ -76,10 +138,13 @@ then
     command=$3
     mu_cli_version="latest"
     container_hash=`docker ps -f "name=mucli" -q`
+    interactive_cli="docker exec -i mucli"
 
     # jq commands
     jq_documentation_filter_commands="jq -r '( .scripts[].documentation.command )'"
     jq_documentation_get_command="jq -c '( .scripts[] | select(.documentation.command == \\\"$command\\\") )'"
+    jq_documentation_get_description="jq -r .documentation.description"
+    jq_documentation_get_arguments="jq -r .documentation.arguments[]"
     jq_command_get_mount_point="jq -r .mounts.app"
     jq_command_get_script="jq -r .environment.script"
     jq_command_get_image="jq -r .environment.image"
@@ -93,26 +158,20 @@ then
     container_id=`docker-compose ps -q $service`
     if [[ -z $container_id ]] ;
     then
-        available_services=`docker-compose ps --services`
-        echo "Error could not find an existing container for service $service."
-        echo "I found containers for the following services:"
-        echo "$available_services"
         echo ""
-        echo "You may want to run 'docker-compose up -d' to make sure the containers exist."
+        print_available_services_information
         exit 1
     fi
     mkdir -p /tmp/mu/cache/$container_id
     docker cp $container_id:/app/scripts /tmp/mu/cache/$container_id
     cat_command="cat /tmp/mu/cache/$container_id/scripts/config.json"
-    interactive_cli="docker exec -i mucli"
+
     if [[ "-h" == $command ]] ;
     then
-        echo "The commands supported by $service are listed below."
-        echo "you can invoke them by typing 'mu script $service [COMMAND]'."
-        echo ""
-        echo "Service $service supports the following commands:"
-        supported_commands=`sh -c "$interactive_cli bash -c \"$cat_command | $jq_documentation_filter_commands\""`
-        echo $supported_commands
+        print_text_block "The commands supported by $service are listed below." \
+                         "you can invoke them by typing 'mu script $service [COMMAND] [ARGUMENTS]'." \
+                         ""
+        print_service_documentation $service
         exit 0
     fi
     echo -n "Executing "
