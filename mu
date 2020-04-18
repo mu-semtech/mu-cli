@@ -73,7 +73,8 @@ then
     fi
 elif [[ "logs" == $1 ]]
 then
-    docker-compose logs -f $2 $3 $4 $5 $6 $7 $8
+    arguments="${@:2}"
+    docker-compose logs -f $arguments
 elif [[ "project" == $1 ]]
 then
     echo "Mu project commands"
