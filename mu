@@ -1,4 +1,5 @@
 #!/bin/bash
+MU_CLI_VERSION="latest"
 
 function print_text_block() {
     for var in "$@"
@@ -8,7 +9,10 @@ function print_text_block() {
 }
 
 function ensure_mu_cli_docker() {
-    echo ""
+    if [[ -z $container_hash ]] ;
+    then
+        docker run --volume /tmp:/tmp -i --name mucli --rm --entrypoint "tail" -d semtech/mu-cli:$MU_CLI_VERSION -f /dev/null
+    fi
 }
 
 function print_commands_documentation() {
@@ -47,6 +51,7 @@ function print_service_documentation() {
 }
 
 function print_available_services_information() {
+    ensure_mu_cli_docker
     interactive_cli="docker exec -i mucli"
     jq_documentation_filter_commands="jq -r '( .scripts[].documentation.command )'"
     jq_documentation_get_description="jq -r .documentation.description"
@@ -89,7 +94,7 @@ then
                              "  mu project new [project name]"
             exit 1
         fi
-        
+
         echo "Creating new mu project for $PROJECT_NAME"
         git clone https://github.com/mu-semtech/mu-project.git $PROJECT_NAME
         cd $PROJECT_NAME
@@ -146,9 +151,9 @@ elif [[ "script" == $1 ]]
 then
     service=$2
     command=$3
-    mu_cli_version="latest"
     container_hash=`docker ps -f "name=mucli" -q`
     interactive_cli="docker exec -i mucli"
+    ensure_mu_cli_docker
 
     # jq commands
     jq_documentation_filter_commands="jq -r '( .scripts[].documentation.command )'"
@@ -159,11 +164,7 @@ then
     jq_command_get_script="jq -r .environment.script"
     jq_command_get_image="jq -r .environment.image"
 
-    # check if the mu-cli container is running
-    if [[ -z $container_hash ]] ;
-    then
-        docker run --volume /tmp:/tmp -i --name mucli --rm --entrypoint "tail" -d semtech/mu-cli:$mu_cli_version -f /dev/null
-    fi
+    ensure_mu_cli_docker
 
     container_id=`docker-compose ps -q $service`
     if [[ -z $container_id ]] ;
@@ -176,7 +177,7 @@ then
     docker cp $container_id:/app/scripts /tmp/mu/cache/$container_id
     cat_command="cat /tmp/mu/cache/$container_id/scripts/config.json"
 
-    if [[ "-h" == $command ]] ;
+    if [[ "-h" == $command ]] || [[ -z $command ]] ;
     then
         print_text_block "The commands supported by $service are listed below." \
                          "you can invoke them by typing 'mu script $service [COMMAND] [ARGUMENTS]'." \
@@ -188,12 +189,10 @@ then
     command_spec=`sh -c "$interactive_cli bash -c \"$cat_command | $jq_documentation_get_command\""`
     if [[ -z $command_spec ]] ;
     then
-        echo ""
-        echo "Error could not find command: $command for service: $service. Please refer to the documentation of the mu service to check the commands available or run 'mu script $service -h'"
-        jq_command="jq -r '( .scripts[].documentation.command )'"
-        supported_commands=`sh -c "$interactive_cli bash -c \"$cat_command | $jq_documentation_filter_commands\""`
-        echo "The following commands are supported by the service $service:"
-        echo $supported_commands
+        print_text_block "" \
+                         "Error could not find command: $command for service: $service." \
+                         "Supported commands are:"
+        print_service_documentation $service
         exit 1
     fi
     echo -n "."
