@@ -72,17 +72,24 @@ then
     fi
 elif [[ "script" == $1 ]]
 then
+    service=$2
+    command=$3
     mu_cli_version="latest"
     container_hash=`docker ps -f "name=mucli" -q`
 
+    # jq commands
     jq_documentation_filter_commands="jq -r '( .scripts[].documentation.command )'"
+    jq_documentation_get_command="jq -c '( .scripts[] | select(.documentation.command == \\\"$command\\\") )'"
+    jq_command_get_mount_point="jq -r .mounts.app"
+    jq_command_get_script="jq -r .environment.script"
+    jq_command_get_image="jq -r .environment.image"
+
+    # check if the mu-cli container is running
     if [[ -z $container_hash ]] ;
     then
         docker run --volume /tmp:/tmp -i --name mucli --rm --entrypoint "tail" -d semtech/mu-cli:$mu_cli_version -f /dev/null
     fi
 
-    service=$2
-    command=$3
     container_id=`docker-compose ps -q $service`
     if [[ -z $container_id ]] ;
     then
@@ -109,23 +116,22 @@ then
         exit 0
     fi
     echo -n "Executing "
-    jq_command="jq -c '( .scripts[] | select(.documentation.command == \\\"$command\\\") )'"
-    command_spec=`sh -c "$interactive_cli bash -c \"$cat_command | $jq_command\""`
+    command_spec=`sh -c "$interactive_cli bash -c \"$cat_command | $jq_documentation_get_command\""`
     if [[ -z $command_spec ]] ;
     then
         echo ""
         echo "Error could not find command: $command for service: $service. Please refer to the documentation of the mu service to check the commands available or run 'mu script $service -h'"
         jq_command="jq -r '( .scripts[].documentation.command )'"
-        supported_commands=`sh -c "$interactive_cli bash -c \"$cat_command | $jq_command\""`
+        supported_commands=`sh -c "$interactive_cli bash -c \"$cat_command | $jq_documentation_filter_commands\""`
         echo "The following commands are supported by the service $service:"
         echo $supported_commands
         exit 1
     fi
     echo -n "."
-    app_mount_point=`echo "$command_spec" | $interactive_cli jq -r .mounts.app`
+    app_mount_point=`echo "$command_spec" | $interactive_cli $jq_command_get_mount_point`
     app_folder="$PWD"
     echo -n "."
-    script_path=`echo "$command_spec" | $interactive_cli jq -r .environment.script`
+    script_path=`echo "$command_spec" | $interactive_cli $jq_command_get_script`
     echo -n "."
     script_folder_name=`dirname $script_path`
     script_file_name=`basename $script_path`
@@ -134,7 +140,7 @@ then
     working_directory="/script"
     arguments="${@:4}"
     echo -n "."
-    image_name=`echo "$command_spec" | $interactive_cli jq -r .environment.image`
+    image_name=`echo "$command_spec" | $interactive_cli $jq_command_get_image`
     echo ""
     interactive_mode=`echo "$command_spec" | $interactive_cli jq -r '.environment.interactive // false'`
     it=""
