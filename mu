@@ -1,4 +1,71 @@
 #!/bin/bash
+MU_CLI_VERSION="latest"
+
+function print_text_block() {
+    for var in "$@"
+    do
+        echo "$var"
+    done
+}
+
+function ensure_mu_cli_docker() {
+    if [[ -z $container_hash ]] ;
+    then
+        docker run --volume /tmp:/tmp -i --name mucli --rm --entrypoint "tail" -d semtech/mu-cli:$MU_CLI_VERSION -f /dev/null
+    fi
+}
+
+function print_commands_documentation() {
+    command=$1
+    jq_documentation_get_command_local="jq -c '( .scripts[] | select(.documentation.command == \\\"$command\\\") )'"
+    command_documentation=`sh -c "$interactive_cli bash -c \"$local_cat_command | $jq_documentation_get_command_local\""`
+    command_description=`echo "$command_documentation" | $interactive_cli $jq_documentation_get_description`
+    command_arguments=`echo "$command_documentation" | $interactive_cli $jq_documentation_get_arguments`
+    print_text_block "  $command:" \
+                     "    description: $command_description"
+    echo -n "    command: mu script $available_service $command"
+    for command_argument in $command_arguments
+    do
+        echo -n " [$command_argument]"
+    done
+}
+
+function print_service_documentation() {
+    service=$1
+    available_container_id=`docker-compose ps -q $service`
+    mkdir -p /tmp/mu/cache/$available_container_id
+    docker cp $available_container_id:/app/scripts /tmp/mu/cache/$available_container_id 2> /dev/null
+    local_cat_command="cat /tmp/mu/cache/$available_container_id/scripts/config.json"
+    if test -f "/tmp/mu/cache/$available_container_id/scripts/config.json"; then
+        supported_commands=`sh -c "$interactive_cli bash -c \"$local_cat_command | $jq_documentation_filter_commands\""`
+        for supported_command in $supported_commands
+        do
+            print_commands_documentation $supported_command
+            print_text_block "" ""
+        done
+        echo ""
+    else
+        print_text_block "  no scripts found" \
+                         ""
+    fi
+}
+
+function print_available_services_information() {
+    ensure_mu_cli_docker
+    interactive_cli="docker exec -i mucli"
+    jq_documentation_filter_commands="jq -r '( .scripts[].documentation.command )'"
+    jq_documentation_get_description="jq -r .documentation.description"
+    jq_documentation_get_arguments="jq -r .documentation.arguments[]"
+    echo "...looking for containers..."
+    available_services=`docker-compose ps --services`
+    echo ""
+    echo "found services:"
+    for available_service in $available_services
+    do
+        print_text_block "$available_service:"
+        print_service_documentation $available_service
+    done
+}
 
 if [[ "start" == $1 ]]
 then
@@ -11,13 +78,23 @@ then
     fi
 elif [[ "logs" == $1 ]]
 then
-    docker-compose logs -f $2 $3 $4 $5 $6 $7 $8
+    arguments="${@:2}"
+    docker-compose logs -f $arguments
 elif [[ "project" == $1 ]]
 then
     echo "Mu project commands"
     if [[ "new" == $2 ]]
     then
         PROJECT_NAME=$3
+        if [[ -z "$PROJECT_NAME" ]]
+        then
+            print_text_block "Please specify a project name." \
+                             "" \
+                             "The expected usage for this command is:" \
+                             "  mu project new [project name]"
+            exit 1
+        fi
+
         echo "Creating new mu project for $PROJECT_NAME"
         git clone https://github.com/mu-semtech/mu-project.git $PROJECT_NAME
         cd $PROJECT_NAME
@@ -72,60 +149,64 @@ then
     fi
 elif [[ "script" == $1 ]]
 then
-    mu_cli_version="latest"
-    container_hash=`docker ps -f "name=mucli" -q`
-
-    jq_documentation_filter_commands="jq -r '( .scripts[].documentation.command )'"
-    if [[ -z $container_hash ]] ;
-    then
-        docker run --volume /tmp:/tmp -i --name mucli --rm --entrypoint "tail" -d semtech/mu-cli:$mu_cli_version -f /dev/null
-    fi
-
     service=$2
     command=$3
+    container_hash=`docker ps -f "name=mucli" -q`
+    interactive_cli="docker exec -i mucli"
+    ensure_mu_cli_docker
+
+    # jq commands
+    jq_documentation_filter_commands="jq -r '( .scripts[].documentation.command )'"
+    jq_documentation_get_command="jq -c '( .scripts[] | select(.documentation.command == \\\"$command\\\") )'"
+    jq_documentation_get_description="jq -r .documentation.description"
+    jq_documentation_get_arguments="jq -r .documentation.arguments[]"
+    jq_command_get_mount_point="jq -r .mounts.app"
+    jq_command_get_script="jq -r .environment.script"
+    jq_command_get_image="jq -r .environment.image"
+
+    ensure_mu_cli_docker
+
+    if [[ "-h" == $service ]] || [[ -z $service ]] ;
+    then
+        echo ""
+        print_available_services_information
+        exit 0
+    fi
+
     container_id=`docker-compose ps -q $service`
     if [[ -z $container_id ]] ;
     then
-        available_services=`docker-compose ps --services`
-        echo "Error could not find an existing container for service $service."
-        echo "I found containers for the following services:"
-        echo "$available_services"
         echo ""
-        echo "You may want to run 'docker-compose up -d' to make sure the containers exist."
+        print_available_services_information
         exit 1
     fi
     mkdir -p /tmp/mu/cache/$container_id
     docker cp $container_id:/app/scripts /tmp/mu/cache/$container_id
     cat_command="cat /tmp/mu/cache/$container_id/scripts/config.json"
-    interactive_cli="docker exec -i mucli"
-    if [[ "-h" == $command ]] ;
+
+    if [[ "-h" == $command ]] || [[ -z $command ]] ;
     then
-        echo "The commands supported by $service are listed below."
-        echo "you can invoke them by typing 'mu script $service [COMMAND]'."
-        echo ""
-        echo "Service $service supports the following commands:"
-        supported_commands=`sh -c "$interactive_cli bash -c \"$cat_command | $jq_documentation_filter_commands\""`
-        echo $supported_commands
+        print_text_block "The commands supported by $service are listed below." \
+                         "you can invoke them by typing 'mu script $service [COMMAND] [ARGUMENTS]'." \
+                         ""
+        print_service_documentation $service
         exit 0
     fi
     echo -n "Executing "
-    jq_command="jq -c '( .scripts[] | select(.documentation.command == \\\"$command\\\") )'"
-    command_spec=`sh -c "$interactive_cli bash -c \"$cat_command | $jq_command\""`
+    command_spec=`sh -c "$interactive_cli bash -c \"$cat_command | $jq_documentation_get_command\""`
     if [[ -z $command_spec ]] ;
     then
-        echo ""
-        echo "Error could not find command: $command for service: $service. Please refer to the documentation of the mu service to check the commands available or run 'mu script $service -h'"
-        jq_command="jq -r '( .scripts[].documentation.command )'"
-        supported_commands=`sh -c "$interactive_cli bash -c \"$cat_command | $jq_command\""`
-        echo "The following commands are supported by the service $service:"
-        echo $supported_commands
+        print_text_block "" \
+                         "Error could not find command: $command for service: $service." \
+                         "Supported commands are:"
+        print_service_documentation $service
         exit 1
     fi
     echo -n "."
-    app_mount_point=`echo "$command_spec" | $interactive_cli jq -r .mounts.app`
+    app_mount_point=`echo "$command_spec" | $interactive_cli $jq_command_get_mount_point`
     app_folder="$PWD"
     echo -n "."
-    script_path=`echo "$command_spec" | $interactive_cli jq -r .environment.script`
+    script_path=`echo "$command_spec" | $interactive_cli $jq_command_get_script`
     echo -n "."
     script_folder_name=`dirname $script_path`
     script_file_name=`basename $script_path`
@@ -134,7 +215,7 @@ then
     working_directory="/script"
     arguments="${@:4}"
     echo -n "."
-    image_name=`echo "$command_spec" | $interactive_cli jq -r .environment.image`
+    image_name=`echo "$command_spec" | $interactive_cli $jq_command_get_image`
     echo ""
     interactive_mode=`echo "$command_spec" | $interactive_cli jq -r '.environment.interactive // false'`
     it=""
@@ -238,5 +319,5 @@ then
     fi
 else
     echo "Don't know command $1"
-    echo "Known commands [ project, service, script ]"
+    echo "Known commands [ project, logs, service, script, start ]"
 fi
