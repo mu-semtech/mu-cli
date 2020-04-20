@@ -124,7 +124,7 @@ And behold the glory of our new dispatcher:
 
 Awesome!
 
-## Tutorials
+## How-to guides
 
 ### Reading a configuration parameter in a script
 
@@ -137,6 +137,8 @@ Be sure to set the `interactive` option on your command to `true`.
 
 
 ## Reasoning
+
+
 
 ## Plugin API
 
