@@ -12,6 +12,12 @@ function ensure_mu_cli_docker() {
     if [[ -z $container_hash ]] ;
     then
         docker run --volume /tmp:/tmp -i --name mucli --rm --entrypoint "tail" -d semtech/mu-cli:$MU_CLI_VERSION -f /dev/null
+        container_hash=`docker ps -f "name=mucli" -q`
+        while [[ -z $container_hash ]]
+        do
+            sleep 1;
+            echo "."
+        done
     fi
 }
 
