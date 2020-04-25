@@ -95,7 +95,6 @@ then
     docker-compose logs -f $arguments
 elif [[ "project" == $1 ]]
 then
-    echo "Mu project commands"
     if [[ "new" == $2 ]]
     then
         PROJECT_NAME=$3
@@ -112,7 +111,7 @@ then
         git clone https://github.com/mu-semtech/mu-project.git $PROJECT_NAME
         cd $PROJECT_NAME
         rm -Rf ./.git
-        git init .
+        g    it init .
         git add .
         git commit -m "Creating new mu project"
         echo "Your mu project hack gear is ready to be hacked... hack on"
@@ -128,30 +127,82 @@ then
         if [[ "service" == $3 ]]; then
             service_image=$4
             service_tag=$5
-            service_name=`echo $service_image | sed -e s/-//g`
+
+            echo -n "Adding service "
+
             if [ -z "$service_tag" ]
             then
                 service_tag="latest"
             fi
-            echo "You can add the following snippet in your pipeline"
-            echo "to hack this service live."
-            echo ""
-            echo "  $service_name:"
-            echo "    image: semtech/$service_image:$service_tag"
-            echo "    links:"
-            echo "      - db:database"
-            echo ""
-            echo "All set to to hack!"
-            for filename in $(find /tmp/musemtech/ -name "*.$service_image.installation_script"); do
-                installation_script_location=$(<$filename)
-                if [[ "null" == $installation_script_location ]]; then
-                    exit 0
-                else
-                    echo "Executing installation script."
-                    curl $installation_script_location > /tmp/install_service.sh
-                    bash /tmp/install_service.sh
-                fi
-            done
+
+            # 1. get the service image
+            echo -n "."
+            ensure_mu_cli_docker
+            echo -n "."
+            interactive_cli="docker exec -i mucli"
+            echo -n "."
+            service_image_description=`curl -s "https://dev.info.mu.semte.ch/microservice-revisions?filter[microservice][:exact:title]=$service_image&filter[:exact:version]=$service_tag"`
+            if [[ "$?" -ne "0" ]]
+            then
+                echo "FAILED"
+                echo ""
+                echo "Could not fetch image description"
+                exit 1
+            fi
+            echo -n "."
+            jq_infosemtech_image_name="jq -r .data[].attributes.image"
+            image_name=`echo "$service_image_description" | $interactive_cli $jq_infosemtech_image_name`
+            echo -n "."
+
+            docker image inspect $image_name:$service_tag > /dev/null 2> /dev/null
+            found_docker_image="$?"
+            echo -n "."
+            if [[ $found_docker_image -ne "0" ]]
+            then
+                echo ""
+                echo "about to pull the image: $image_name:$service_tag"
+            fi
+            docker run --name mu_cli_tmp_copy --entrypoint "/bin/sh" $image_name:$service_tag
+            if [[ $found_docker_image -ne "0" ]]
+            then
+                echo "Adding service ......"
+            fi
+            mkdir -p /tmp/mu/cache/mu_cli_tmp_copy/
+
+            # 2. copy scripts contents from the image
+            echo -n "."
+            docker cp mu_cli_tmp_copy:/app/scripts/install /tmp/mu/cache/mu_cli_tmp_copy/
+            echo -n "."
+            docker rm -f mu_cli_tmp_copy > /dev/null
+            docker cp docker-compose.yml mucli:/tmp/
+            echo -n "."
+            docker cp /tmp/mu/cache/mu_cli_tmp_copy/install/docker-compose-snippet.yml mucli:/tmp/
+            echo -n "."
+
+            # 3. extract script information
+            services_line_number=`docker exec mucli grep -n -P "^services:" /tmp/docker-compose.yml | awk -F ":" '{ print $1 }' | tail -n 1`
+            echo -n "."
+            last_root_object_line_number=`docker exec mucli grep -n -P "^\\w" /tmp/docker-compose.yml | awk -F ":" '{ print $1 }' | tail -n 1`
+            echo -n "."
+            docker exec mucli sed -i -e "s/^/  /" /tmp/docker-compose-snippet.yml
+            echo -n "."
+
+            # 4. append lines with info
+            if [ $services_line_number -ne $last_root_object_line_number ] ;
+            then
+                line_number_to_insert_at=$services_line_number
+                r="r"
+                docker exec mucli sed -i -e "$line_number_to_insert_at$r /tmp/docker-compose-snippet.yml" /tmp/docker-compose.yml
+                echo -n "."
+            else
+                docker exec mucli /bin/bash -c "echo '' >> /tmp/docker-compose.yml"
+                echo -n "."
+                docker exec mucli /bin/bash -c "cat /tmp/docker-compose-snippet.yml >> /tmp/docker-compose.yml"
+                echo -n "."
+            fi
+            docker cp mucli:/tmp/docker-compose.yml docker-compose.yml
+            echo " DONE"
+            exit 0
         else
             echo "To add a service use:"
             echo "mu project add service [service name] [(optional) service tag]"

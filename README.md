@@ -2,8 +2,9 @@
 
 Linux CLI support for setting up and starting mu projects and services.
 
-
 ## Getting started
+
+_Getting started with mu-cli_
 
 First we install mu-cli, then we use it to create a new migration.  As a last step we create a script in our repository.
 
@@ -142,7 +143,14 @@ Awesome!
 
 ## How-to guides
 
+_Specific guides how to apply this container_
+
 ### Reading a configuration parameter in a script
+
+Reading parameters from a script may occur from many languages.  This example reads from the commandline using a bash script.
+
+In order to read contents from a user, your command needs to be ran in interactive mode.
+
 
 When writing a script you may want to read information from the user.  When using bash, you can use the `read` command as such:
 
@@ -154,14 +162,78 @@ Be sure to set the `interactive` option on your command to `true`.
 
 ## Reasoning
 
+_Background information about the approach we took_
 
+### High-level architectural overview
 
-## Plugin API
+mu-cli is a scirpt which supplies a bunch of functions.  It bases itself on a somewhat limited shell script and executes commands you may not have installed through Docker.
 
+We find two series of scripts:
 
+  - Creating new services and projects
+  - Manipulating existing projects through scripts
 
+#### Creating new services and projects
 
+We assume you have Git installed.  In order to create a new service or project, we either clone a template repository, or we create the minimal contents needed through a simple script.
 
-## Usage
+Although the current approach works this way, the long-term flexibility may be more in line with either cloning template repositories or in line with running scripts.
 
-Write mu and use tab completions.  When generating code, make sure to supply the name of the project at the end.
+#### Running scripts
+
+Scripts are currently attached to a microservice defined in a project.  We assume the scripts are defined in `/app/scripts` in the final output of the container.
+
+When you choose to run a script, we parse the json file which describes the command.  This describes how the script should be ran (in which image and which executable).  The json file has some options to specify the environment which the script needs to run correctly.
+
+### Executing and finding scripts in a project
+
+Finding the scripts in a project requires some wizardry.  We find containers that are running for your project and inspect those to find the available scripts.
+
+We want to be compatible with the options supplied in the docker-compose.yml file and select the "right" docker-compose files to find the services in.  In case of conflict we want to stay as close as possible to your configuration.  That includes things like mounted volumes for finding the scripts.
+
+docker-compose offers a script which lists all containers active for the current project, regardless of the docker-compose file through which they were launched.  Although this requires the stack to have been started before you can execute such scripts, it helps us make sure the environment for the container is what the user expects it to be.  We copy the scripts folder from the existing container and start reasoning on its contents.
+
+Once the script has been found, we execute it in the requested environment.  The container in which the script runs can be set dynamically.
+
+### Base technologies
+
+mu-cli is a command-line extension of mu.semte.ch.  Searching for a limited set of dependencies, the result is a shell script which heavily relies on Docker for its base functionality.
+
+Depending on a shell seems to be well-suited for terminal support.  These scripts can be written in multiple languages.  Tools are dependent on the language chosen.  It is highly uncertain which scripts a person will have installed.  We can request the user to install all necessary dependencies, but that would not be the nicest experience.  Furthermore, depending on installed commands may also make us depend on specific versions.
+
+Because the stack already requires Docker and docker-copmose, we try to keep the shell dependencies low, and use a long-running docker-container for other functionality.
+
+As such, the base dependency is a shell (we assume something Bash-compatible at this time) and Docker.
+
+### Installing a service
+
+Installing a service is a different beast alltogether.  We can't inspect the service's image or the environment like we do when running scripts.
+
+We maintain an index of images compatible with mu.semte.ch.  This list is queried for the name you're looknig for.  If we find the service, we check the necessary image.  We create a new container for that image and ensure it exists immediately.  Once the container is created, we copy the scripts container from that image.  Next we remove the container again.
+
+The `config.json` describes what we need to when we want to install the image.  Each of those commands in order.
+
+### Embedding scripts in the container
+
+You may wonder why we share the scripts through the container itself rather than using some other system.
+
+There are a few advantages to this approach:
+
+  - We expect the majority of the scripts to be tied to a microservice.  It makes sense to maintain the scripts which match a specific version of the microservice, so it makes sense for the scripts to be maintained with the sourcecode.
+  - If you are using mu.semte.ch, you must have found ways to share Docker containers.  You already have a sturdy way of sharing scripts.
+  - By storing the scripts in a container and supporting mounted volumes, it's easy to develop scripts by mounting them in a container.
+  - Although we can easily share scripts with a microservice, you may add a container which exits early (like semtech/mu-scripts) to embed project-specific scripts in the same manner.
+
+A possible downside of our approach is that the image may get polluted with large scripts.  We doubt this will be an issue in practice as you can run the scripts in a container with a different image.  As such, you can embed extra dependencies in such an image.  If the custom script itself becomes large, you can create a custom docker build for storing the information about that script.
+
+Taking these factors into account, it makes sense to keep use this mechanism for sharing scripts.
+
+## API
+
+_Provided application interface_
+
+### Shell API
+
+This is a listing of all commands in the shell.
+
+- 
