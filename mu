@@ -213,81 +213,100 @@ then
     fi
 elif [[ "script" == $1 ]]
 then
-    service=$2
-    command=$3
-    interactive_cli="docker exec -i mucli"
-    ensure_mu_cli_docker
-
-    # jq commands
-    jq_documentation_filter_commands="jq -r '( .scripts[].documentation.command )'"
-    jq_documentation_get_command="jq -c '( .scripts[] | select(.documentation.command == \\\"$command\\\") )'"
-    jq_documentation_get_description="jq -r .documentation.description"
-    jq_documentation_get_arguments="jq -r .documentation.arguments[]"
-    jq_command_get_mount_point="jq -r .mounts.app"
-    jq_command_get_script="jq -r .environment.script"
-    jq_command_get_image="jq -r .environment.image"
-
-    ensure_mu_cli_docker
-
-    if [[ "-h" == $service ]] || [[ -z $service ]] ;
+    # Check if we are in a project or in a service
+    if [[ -f ./docker-compose.yml && -f Dockerfile ]]
     then
+        echo "mu script is not supported in folders which have a Dockerfile and a docker-compose.yml"
+        exit 1
+    elif [[ -f ./docker-compose.yml ]]
+    then
+        service=$2
+        command=$3
+        interactive_cli="docker exec -i mucli"
+        ensure_mu_cli_docker
+
+        # jq commands
+        jq_documentation_filter_commands="jq -r '( .scripts[].documentation.command )'"
+        jq_documentation_get_command="jq -c '( .scripts[] | select(.documentation.command == \\\"$command\\\") )'"
+        jq_documentation_get_description="jq -r .documentation.description"
+        jq_documentation_get_arguments="jq -r .documentation.arguments[]"
+        jq_command_get_mount_point="jq -r .mounts.app"
+        jq_command_get_script="jq -r .environment.script"
+        jq_command_get_image="jq -r .environment.image"
+
+        ensure_mu_cli_docker
+
+        if [[ "-h" == $service ]] || [[ -z $service ]] ;
+        then
+            echo ""
+            print_available_services_information
+            exit 0
+        fi
+
+        container_id=`docker-compose ps -q $service`
+        if [[ -z $container_id ]] ;
+        then
+            echo ""
+            print_available_services_information
+            exit 1
+        fi
+        mkdir -p /tmp/mu/cache/$container_id
+        docker cp $container_id:/app/scripts /tmp/mu/cache/$container_id
+        cat_command="cat /tmp/mu/cache/$container_id/scripts/config.json"
+
+        if [[ "-h" == $command ]] || [[ -z $command ]] ;
+        then
+            print_text_block "The commands supported by $service are listed below." \
+                             "you can invoke them by typing 'mu script $service [COMMAND] [ARGUMENTS]'." \
+                             ""
+            print_service_documentation $service
+            exit 0
+        fi
+        echo -n "Executing "
+        command_spec=`sh -c "$interactive_cli bash -c \"$cat_command | $jq_documentation_get_command\""`
+        if [[ -z $command_spec ]] ;
+        then
+            print_text_block "" \
+                             "Error could not find command: $command for service: $service." \
+                             "Supported commands are:"
+            print_service_documentation $service
+            exit 1
+        fi
+        echo -n "."
+        app_mount_point=`echo "$command_spec" | $interactive_cli $jq_command_get_mount_point`
+        app_folder="$PWD"
+        echo -n "."
+        script_path=`echo "$command_spec" | $interactive_cli $jq_command_get_script`
+        echo -n "."
+        script_folder_name=`dirname $script_path`
+        script_file_name=`basename $script_path`
+        folder_name="$script_folder_name"
+        entry_point="$script_file_name"
+        working_directory="/script"
+        arguments="${@:4}"
+        echo -n "."
+        image_name=`echo "$command_spec" | $interactive_cli $jq_command_get_image`
         echo ""
-        print_available_services_information
+        interactive_mode=`echo "$command_spec" | $interactive_cli jq -r '.environment.interactive // false'`
+        it=""
+        if [[ true = "$interactive_mode" ]];
+        then
+            it=" -it "
+        fi
+
+        docker run --volume $PWD:$app_mount_point --volume /tmp/mu/cache/$container_id/scripts/$folder_name:/script $it -w $working_directory --rm --entrypoint ./$entry_point $image_name $arguments
+    elif [[ -f "Dockerfile" ]]
+    then
+        echo "Running scripts in new services is soon to be supported"
         exit 0
-    fi
-
-    container_id=`docker-compose ps -q $service`
-    if [[ -z $container_id ]] ;
-    then
+    else
+        echo "Did not recognise location"
         echo ""
-        print_available_services_information
+        echo "Please make sure you are in the top-level folder of either:"
+        echo " - a project (containing a docker-compose.yml)"
+        echo " - a service (containing a Dockerfile)"
         exit 1
     fi
-    mkdir -p /tmp/mu/cache/$container_id
-    docker cp $container_id:/app/scripts /tmp/mu/cache/$container_id
-    cat_command="cat /tmp/mu/cache/$container_id/scripts/config.json"
-
-    if [[ "-h" == $command ]] || [[ -z $command ]] ;
-    then
-        print_text_block "The commands supported by $service are listed below." \
-                         "you can invoke them by typing 'mu script $service [COMMAND] [ARGUMENTS]'." \
-                         ""
-        print_service_documentation $service
-        exit 0
-    fi
-    echo -n "Executing "
-    command_spec=`sh -c "$interactive_cli bash -c \"$cat_command | $jq_documentation_get_command\""`
-    if [[ -z $command_spec ]] ;
-    then
-        print_text_block "" \
-                         "Error could not find command: $command for service: $service." \
-                         "Supported commands are:"
-        print_service_documentation $service
-        exit 1
-    fi
-    echo -n "."
-    app_mount_point=`echo "$command_spec" | $interactive_cli $jq_command_get_mount_point`
-    app_folder="$PWD"
-    echo -n "."
-    script_path=`echo "$command_spec" | $interactive_cli $jq_command_get_script`
-    echo -n "."
-    script_folder_name=`dirname $script_path`
-    script_file_name=`basename $script_path`
-    folder_name="$script_folder_name"
-    entry_point="$script_file_name"
-    working_directory="/script"
-    arguments="${@:4}"
-    echo -n "."
-    image_name=`echo "$command_spec" | $interactive_cli $jq_command_get_image`
-    echo ""
-    interactive_mode=`echo "$command_spec" | $interactive_cli jq -r '.environment.interactive // false'`
-    it=""
-    if [[ true = "$interactive_mode" ]];
-    then
-        it=" -it "
-    fi
-
-    docker run --volume $PWD:$app_mount_point --volume /tmp/mu/cache/$container_id/scripts/$folder_name:/script $it -w $working_directory --rm --entrypoint ./$entry_point $image_name $arguments
 elif [[ "service" == $1 ]]
 then
     echo "Mu service commands"
