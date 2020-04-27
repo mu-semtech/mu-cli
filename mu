@@ -144,9 +144,9 @@ then
             service_image_description=`curl -s "https://dev.info.mu.semte.ch/microservice-revisions?filter[microservice][:exact:title]=$service_image&filter[:exact:version]=$service_tag"`
             if [[ "$?" -ne "0" ]]
             then
-                echo "FAILED"
+                echo " FAILED"
                 echo ""
-                echo "Could not fetch image description"
+                echo "Could not fetch image description.  Are you online?"
                 exit 1
             fi
             echo -n "."
