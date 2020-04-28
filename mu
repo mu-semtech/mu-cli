@@ -297,7 +297,138 @@ then
         docker run --volume $PWD:$app_mount_point --volume /tmp/mu/cache/$container_id/scripts/$folder_name:/script $it -w $working_directory --rm --entrypoint ./$entry_point $image_name $arguments
     elif [[ -f "Dockerfile" ]]
     then
-        echo "Running scripts in new services is soon to be supported"
+        echo -n "Discovering script "
+        image_name=`cat Dockerfile | grep -oP "^FROM \\K.*"`
+        echo -n "." # 1
+        command=$2
+        interactive_cli="docker exec -i mucli"
+        ensure_mu_cli_docker
+
+        echo -n "." # 2
+
+        # jq commands
+        jq_documentation_filter_commands="jq -r '( .scripts[].documentation.command )'"
+        jq_documentation_get_command="jq -c '( .scripts[] | select(.documentation.command == \\\"$command\\\") )'"
+        jq_documentation_get_description="jq -r .documentation.description"
+        jq_documentation_get_arguments="jq -r .documentation.arguments[]"
+        jq_command_get_mount_point="jq -r .mounts.service"
+        jq_command_get_script="jq -r .environment.script"
+        jq_command_get_image="jq -r .environment.image"
+
+        echo -n "." # 3
+
+        if [[ "-h" == $command ]]
+        then
+            echo ""
+            echo "TODO: print information on available scripts"
+            exit 0
+        fi
+
+        image_id=`docker images -q $image_name`
+
+        echo -n "." # 4
+
+        # make sure we have the image available
+        if [[ -z image_id ]]
+        then
+            echo " need to fetch base image."
+
+            echo -n "Fetching service base image ... "
+            docker pull $image_name 2> /dev/null
+            if [[ "$?" -ne "0" ]]
+            then
+                echo ""
+                echo "Could not find the image."
+                echo "Check if the FROM in your Dockerfile is correct."
+                echo "If the image is not available publicly,"
+                echo "make sure to build it locally"
+                exit 1
+            fi
+            echo "DONE"
+            echo -n "Discovering script ...."
+            image_id=`docker images -q $image_name`
+        fi
+
+        echo -n "." # 5
+
+        docker run --name mu_cli_tmp_copy --entrypoint /bin/sh $image_name
+
+        echo -n "." # 6
+
+        mkdir -p /tmp/mu/cache/$image_id
+
+        echo -n "." # 7
+
+        docker cp mu_cli_tmp_copy:/app/scripts /tmp/mu/cache/$image_id
+
+        echo -n "." # 8
+
+        cat_config_command="cat /tmp/mu/cache/$image_id/scripts/config.json"
+
+        if [[ "-h" == $command || "" == "$command" ]]
+        then
+            echo ""
+            echo "TODO: print information on available scripts"
+            exit 0
+        fi
+
+        echo -n "." # 9
+
+        # cleaning up copy container
+        docker rm -f mu_cli_tmp_copy 2> /dev/null > /dev/null
+
+        echo -n "." # 10
+
+        # command_spec=`$interactive_cli bash -c "$cat_config_command | $jq_documentation_get_command"`
+
+        command_spec=`sh -c "$interactive_cli bash -c \"$cat_config_command | $jq_documentation_get_command\""`
+
+        echo -n "." # 11
+
+        if [[ -z $command_spec ]] ;
+        then
+            print_text_block "" \
+                             "Error could not find command: $command for service: $service." \
+                             "Supported commands are:"
+
+            echo "TODO: print information on available scripts"
+            exit 1
+        fi
+
+        echo -n "." # 12
+
+        service_mount_point=`echo "$command_spec" | $interactive_cli $jq_command_get_mount_point`
+        echo -n "." # 13
+
+        service_folder="$PWD"
+        echo -n "." # 14
+        script_path=`echo "$command_spec" | $interactive_cli $jq_command_get_script`
+        echo -n "." # 15
+        script_folder_name=`dirname $script_path`
+        script_file_name=`basename $script_path`
+        folder_name="$script_folder_name"
+        entry_point="$script_file_name"
+        working_directory="/script"
+        echo -n "." # 16
+        arguments="${@:3}"
+        echo -n "." # 17
+        image_name=`echo "$command_spec" | $interactive_cli $jq_command_get_image`
+        echo -n "." # 18
+        interactive_mode=`echo "$command_spec" | $interactive_cli jq -r '.environment.interactive // false'`
+        echo -n "." # 19
+        it=""
+        if [[ true = "$interactive_mode" ]];
+        then
+            it=" -it "
+        fi
+
+        echo -n "." # 20
+
+        echo " DONE"
+
+        echo "Executing script $command $arguments"
+
+        docker run --volume $PWD:$service_mount_point --volume /tmp/mu/cache/$image_id/scripts/$folder_name:/script $it -w $working_directory --rm --entrypoint ./$entry_point $image_name $arguments
         exit 0
     else
         echo "Did not recognise location"
