@@ -63,6 +63,35 @@ function print_service_documentation() {
     fi
 }
 
+function print_service_scripts_documentation() {
+    # This is used for listing the scripts a service knows about
+    config_file_location=$1
+    local_cat_command="cat $config_file_location"
+    if [[ -f "$config_file_location" ]]
+    then
+        supported_commands=`sh -c "$interactive_cli bash -c \"$local_cat_command | $jq_documentation_filter_commands\""`
+        if [[ -n "$supported_commands" ]]
+        then
+            print_text_block "" \
+                             "Discovered scripts are:" \
+                             ""
+           for supported_command in $supported_commands
+           do
+               print_commands_documentation $supported_command
+               print_text_block "" ""
+           done
+           echo ""
+        else
+            print_text_block "" \
+                             "There are no scripts available" \
+                             ""
+        fi
+    else
+        print_text_block "There are no scripts available" \
+                         "";
+    fi
+}
+
 function print_available_services_information() {
     ensure_mu_cli_docker
     interactive_cli="docker exec -i mucli"
@@ -267,8 +296,8 @@ then
         if [[ -z $command_spec ]] ;
         then
             print_text_block "" \
-                             "Error could not find command: $command for service: $service." \
-                             "Supported commands are:"
+                             "Error: could not find script: $command for service: $service." \
+                             "Supported scripts are:"
             print_service_documentation $service
             exit 1
         fi
@@ -317,13 +346,6 @@ then
 
         echo -n "." # 3
 
-        if [[ "-h" == $command ]]
-        then
-            echo ""
-            echo "TODO: print information on available scripts"
-            exit 0
-        fi
-
         image_id=`docker images -q $image_name`
 
         echo -n "." # 4
@@ -345,7 +367,7 @@ then
                 exit 1
             fi
             echo "DONE"
-            echo -n "Discovering script ...."
+            echo -n "Discovering scripts ...."
             image_id=`docker images -q $image_name`
         fi
 
@@ -359,23 +381,25 @@ then
 
         echo -n "." # 7
 
-        docker cp mu_cli_tmp_copy:/app/scripts /tmp/mu/cache/$image_id
+        docker cp mu_cli_tmp_copy:/app/scripts /tmp/mu/cache/$image_id 2> /dev/null
 
         echo -n "." # 8
 
-        cat_config_command="cat /tmp/mu/cache/$image_id/scripts/config.json"
-
-        if [[ "-h" == $command || "" == "$command" ]]
-        then
-            echo ""
-            echo "TODO: print information on available scripts"
-            exit 0
-        fi
+        # cleaning up copy container
+        docker rm -f mu_cli_tmp_copy 2> /dev/null > /dev/null
 
         echo -n "." # 9
 
-        # cleaning up copy container
-        docker rm -f mu_cli_tmp_copy 2> /dev/null > /dev/null
+        config_location="/tmp/mu/cache/$image_id/scripts/config.json"
+        cat_config_command="cat $config_location"
+
+        if [[ "-h" == $command || "" == "$command" ]]
+        then
+            echo " DONE"
+            echo ""
+            print_service_scripts_documentation $config_location
+            exit 0
+        fi
 
         echo -n "." # 10
 
@@ -387,11 +411,13 @@ then
 
         if [[ -z $command_spec ]] ;
         then
+            echo " DONE"
             print_text_block "" \
-                             "Error could not find command: $command for service: $service." \
-                             "Supported commands are:"
+                             "Error: Script not found" \
+                             "  Could not find script $command in $image_name" \
+                             "" \
 
-            echo "TODO: print information on available scripts"
+            print_service_scripts_documentation $config_location
             exit 1
         fi
 
