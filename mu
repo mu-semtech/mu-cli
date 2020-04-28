@@ -326,6 +326,7 @@ then
         docker run --volume $PWD:$app_mount_point --volume /tmp/mu/cache/$container_id/scripts/$folder_name:/script $it -w $working_directory --rm --entrypoint ./$entry_point $image_name $arguments
     elif [[ -f "Dockerfile" ]]
     then
+        # A script for developing a microservice
         echo -n "Discovering script "
         image_name=`cat Dockerfile | grep -oP "^FROM \\K.*"`
         echo -n "." # 1
@@ -450,11 +451,21 @@ then
 
         echo -n "." # 20
 
+        # Shared environment variables
+
+        docker_volumes=(
+            --volume $PWD:$service_mount_point
+            --volume /tmp/mu/cache/$image_id/scripts/$folder_name:/script)
+        environment_variables=(
+            -e SERVICE_HOST_DIR="$PWD/")
+
+        echo -n "." # 21
+
         echo " DONE"
 
         echo "Executing script $command $arguments"
 
-        docker run --volume $PWD:$service_mount_point --volume /tmp/mu/cache/$image_id/scripts/$folder_name:/script $it -w $working_directory --rm --entrypoint ./$entry_point $image_name $arguments
+        docker run ${docker_volumes[@]} ${environment_variables[@]} $it -w $working_directory --rm --entrypoint ./$entry_point $image_name $arguments
         exit 0
     else
         echo "Did not recognise location"
