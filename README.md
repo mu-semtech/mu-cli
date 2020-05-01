@@ -275,7 +275,20 @@ Taking these factors into account, it makes sense to keep use this mechanism for
 
 _Provided application interface_
 
-### Shell API
+### Scripts API config.json
 
-This is a listing of all commands in the shell.
+This section describes the config.json as currently specified.  The section is a listing containing the full path of a key, followed by a description of what it does.
+
+- **`version`**: Version number of the script.  This documentation describes version `"0.1"`.
+- **`scripts`**: Array containing json objects.  Each of the objects describes an individual script.
+- **`scripts.documentation`**: JSON object describing what the user sees of the script.
+- **`scripts.documentation.command`**: The command as ran by the user.  If the command is the string `new`, then `mu script servicename new` will launch the script in a service, or `mu script new` will launch the script if it comes from a template.
+- **`scripts.documentation.description`**: Human description of what the command will do.  This will be printed on the console when a user lists commands.
+- **`scripts.documentation.arguments`**: Array of strings with argument names for the script.  This exists for documentation purposes.
+- **`scripts.environment`**: JSON object describing the general environment in which the script will run.
+- **`scripts.environment.image`**: Docker image of the container in which the script will run.  This does not need to be the same as the image of the service.
+- **`scripts.environment.interactive`**: When set to true, your Docker container is ran in interactive mode and can thus receive input from the user.  Non-interactive scripts are easier to call by external scripts.
+- **`scripts.environment.script`**: The script which will be ran.  Make sure this script is executable (`chmod a+x your-script.sh`).  If the script can be ran by your container as a script, it's fine.  You could use a shebang like `#!/usr/bin/ruby` as the first line of your script to run a ruby script, or you could have a standard shell script which launches something totally different.
+- **`scripts.mounts.app`**: For scripts which run in a project, this is the place where the full project folder will be mounted.  It allows you to do things like rceate new files for the project.
+- **`scripts.mounts.service`**: For scripts which run from a template, this is the place where the service file will be mounted.  It allows you to do things like create new files for the service.
 
