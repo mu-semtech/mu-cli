@@ -292,3 +292,8 @@ This section describes the config.json as currently specified.  The section is a
 - **`scripts.mounts.app`**: For scripts which run in a project, this is the place where the full project folder will be mounted.  It allows you to do things like rceate new files for the project.
 - **`scripts.mounts.service`**: For scripts which run from a template, this is the place where the service file will be mounted.  It allows you to do things like create new files for the service.
 
+### Scripts API environment variables
+
+We suspect that there's a whole bunch of info which may be valuable to pass to the scripts.  It doesn't make sense to pass everything as arguments because that would pollute the interface of the script.  As we do with HTTP headers, we use environment variables as a channel for meta information.  Current environment variables:
+
+- **`SERVICE_HOST_DIR`:** For template services, contains the directory where the service is located on the host filesystem.
