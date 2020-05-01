@@ -145,6 +145,49 @@ Awesome!
 
 _Specific guides how to apply this container_
 
+### Developing a new service script
+
+Developing scripts can be done in a project.
+
+Scripts are found by checking the existing containers of a mu-project and seing if they have scripts defined in their `/app/scripts/` folder.  Because mu-cli checks the configuration of the container itself, you can specify a volume in the docker-compose.yml.  You can skip the rest of this how-to, it more elaborately explains the process and can be used for reference if something is unclear.
+
+In your docker-compose.yml, make sure your service has the right volume attached to it.
+
+    services:
+      mine:
+        ...
+        volumes:
+          /path/to/scripts/:/app/scripts
+
+Make sure the service is created by running `docker-compose up -d` (optionally followed by `docker-compose stop`) and esure you don't remove the `mine` container when running scripts (containers which are not created, will not be used for finding scripts).
+
+Add the `config.json` in the `/path/to/scripts/` folder.
+
+When running `mu script`, you should see the scripts for service `mine` in the list.
+
+You can develop your scripts in `/path/to/scripts/`.  You don't need to restart the stack when updating the sources.  Changes are picked up on each run.
+
+### Developing template scripts
+
+Writing templates happens much less than writing scripts.  Hence, tooling is vastly less smoothed out.
+
+1. create a service in which you will try out your template script.
+
+    mu service new javascript mu-test-service
+
+2. make up a new tag under which you will develop your new script eg `semtech/mu-javascript-template:new-script-dev`.
+
+3. update the FROM statement of the `Dockerfile` of your microservice to the newly created tag.
+
+3. add the scripts you want to use to the `/app/scripts/` folder of the template.
+
+4. create a new local build of the template service with the tag you chose before.
+
+5. try out your script in the microservice.
+
+You can keep iterating between steps 3-5.  There is no need to make a build of your microservice.  The script will be available while developing the microservice, not while using the service in a stack.
+
+
 ### Reading a configuration parameter in a script
 
 Reading parameters from a script may occur from many languages.  This example reads from the commandline using a bash script.
@@ -236,4 +279,3 @@ _Provided application interface_
 
 This is a listing of all commands in the shell.
 
-- 
