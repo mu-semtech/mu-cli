@@ -149,7 +149,7 @@ _Specific guides how to apply this container_
 
 Developing scripts can be done in a project.
 
-Scripts are found by checking the existing containers of a mu-project and seing if they have scripts defined in their `/app/scripts/` folder.  Because mu-cli checks the configuration of the container itself, you can specify a volume in the docker-compose.yml.  You can skip the rest of this how-to, it more elaborately explains the process and can be used for reference if something is unclear.
+Scripts are found by checking the existing containers of a mu-project and seeing if they have scripts defined in their `/app/scripts/` folder.  Because mu-cli checks the configuration of the container itself, you can specify a volume in the docker-compose.yml.  You can skip the rest of this how-to, it more elaborately explains the process and can be used for reference if something is unclear.
 
 In your docker-compose.yml, make sure your service has the right volume attached to it.
 
@@ -159,7 +159,7 @@ In your docker-compose.yml, make sure your service has the right volume attached
         volumes:
           /path/to/scripts/:/app/scripts
 
-Make sure the service is created by running `docker-compose up -d` (optionally followed by `docker-compose stop`) and esure you don't remove the `mine` container when running scripts (containers which are not created, will not be used for finding scripts).
+Make sure the service is created by running `docker-compose up -d` (optionally followed by `docker-compose stop`) and ensure you don't remove the `mine` container when running scripts (containers which are not created, will not be used for finding scripts).
 
 Add the `config.json` in the `/path/to/scripts/` folder.
 
@@ -173,7 +173,9 @@ Writing templates happens much less than writing scripts.  Hence, tooling is vas
 
 1. create a service in which you will try out your template script.
 
+```
     mu service new javascript mu-test-service
+```
 
 2. make up a new tag under which you will develop your new script eg `semtech/mu-javascript-template:new-script-dev`.
 
@@ -209,7 +211,7 @@ _Background information about the approach we took_
 
 ### High-level architectural overview
 
-mu-cli is a scirpt which supplies a bunch of functions.  It bases itself on a somewhat limited shell script and executes commands you may not have installed through Docker.
+mu-cli is a script which supplies a bunch of functions.  It bases itself on a somewhat limited shell script and executes commands you may not have installed through Docker.
 
 We find two series of scripts:
 
@@ -244,7 +246,7 @@ mu-cli is a command-line extension of mu.semte.ch.  Searching for a limited set 
 
 Depending on a shell seems to be well-suited for terminal support.  These scripts can be written in multiple languages.  Tools are dependent on the language chosen.  It is highly uncertain which scripts a person will have installed.  We can request the user to install all necessary dependencies, but that would not be the nicest experience.  Furthermore, depending on installed commands may also make us depend on specific versions.
 
-Because the stack already requires Docker and docker-copmose, we try to keep the shell dependencies low, and use a long-running docker-container for other functionality.
+Because the stack already requires Docker and docker-compose, we try to keep the shell dependencies low, and use a long-running docker-container for other functionality.
 
 As such, the base dependency is a shell (we assume something Bash-compatible at this time) and Docker.
 
@@ -279,7 +281,7 @@ _Provided application interface_
 
 This section describes the config.json as currently specified.  The section is a listing containing the full path of a key, followed by a description of what it does.
 
-- **`version`**: Version number of the script.  This documentation describes version `"0.1"`.
+- **`version`**: Version number of the config file format.  This documentation describes version `"0.1"`.
 - **`scripts`**: Array containing json objects.  Each of the objects describes an individual script.
 - **`scripts.documentation`**: JSON object describing what the user sees of the script.
 - **`scripts.documentation.command`**: The command as ran by the user.  If the command is the string `new`, then `mu script servicename new` will launch the script in a service, or `mu script new` will launch the script if it comes from a template.
@@ -289,7 +291,7 @@ This section describes the config.json as currently specified.  The section is a
 - **`scripts.environment.image`**: Docker image of the container in which the script will run.  This does not need to be the same as the image of the service.
 - **`scripts.environment.interactive`**: When set to true, your Docker container is ran in interactive mode and can thus receive input from the user.  Non-interactive scripts are easier to call by external scripts.
 - **`scripts.environment.script`**: The script which will be ran.  Make sure this script is executable (`chmod a+x your-script.sh`).  If the script can be ran by your container as a script, it's fine.  You could use a shebang like `#!/usr/bin/ruby` as the first line of your script to run a ruby script, or you could have a standard shell script which launches something totally different.
-- **`scripts.mounts.app`**: For scripts which run in a project, this is the place where the full project folder will be mounted.  It allows you to do things like rceate new files for the project.
+- **`scripts.mounts.app`**: For scripts which run in a project, this is the place where the full project folder will be mounted.  It allows you to do things like create new files for the project.
 - **`scripts.mounts.service`**: For scripts which run from a template, this is the place where the service file will be mounted.  It allows you to do things like create new files for the service.
 
 ### Scripts API environment variables
