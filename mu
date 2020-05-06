@@ -177,7 +177,7 @@ then
 
             echo -n "Adding service "
 
-            if [ -z "$service_tag" ]
+            if [[ "$service_tag" == "" ]]
             then
                 service_tag="latest"
             fi
@@ -188,7 +188,9 @@ then
             echo -n "."
             interactive_cli="docker exec -i mucli"
             echo -n "."
-            service_image_description=`curl -s "https://dev.info.mu.semte.ch/microservice-revisions?filter[microservice][:exact:title]=$service_image&filter[:exact:version]=$service_tag"`
+
+            service_image_description=`curl -s "https://info.mu.semte.ch/microservice-revisions?filter[microservice][:exact:title]=$service_image&filter[:exact:version]=$service_tag&page[size]=1"`
+
             if [[ "$?" -ne "0" ]]
             then
                 echo " FAILED"
@@ -196,9 +198,19 @@ then
                 echo "Could not fetch image description.  Are you online?"
                 exit 1
             fi
+
             echo -n "."
             jq_infosemtech_image_name="jq -r .data[].attributes.image"
             image_name=`echo "$service_image_description" | $interactive_cli $jq_infosemtech_image_name`
+
+            if [[ "$image_name" == "" ]]
+            then
+                echo " FAILED"
+                echo ""
+                echo "Could not find image in the repository."
+                exit 1
+            fi
+
             echo -n "."
 
             docker image inspect $image_name:$service_tag > /dev/null 2> /dev/null
@@ -209,11 +221,14 @@ then
                 echo ""
                 echo "about to pull the image: $image_name:$service_tag"
             fi
-            docker run --name mu_cli_tmp_copy --entrypoint "/bin/sh" $image_name:$service_tag
+            echo -n "."
+            docker run --name mu_cli_tmp_copy --entrypoint "/bin/sh" "$image_name:$service_tag"
+            echo -n "."
             if [[ $found_docker_image -ne "0" ]]
             then
                 echo "Adding service ......"
             fi
+            echo -n "."
             mkdir -p /tmp/mu/cache/mu_cli_tmp_copy/
 
             # 2. copy scripts contents from the image
