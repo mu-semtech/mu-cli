@@ -1,6 +1,24 @@
 #!/bin/bash
 MU_CLI_VERSION="latest"
 
+####
+## Sending command info
+####
+STATUS_MESSAGE=""
+
+function status_echo() {
+    echo -n "$STATUS_MESSAGE";
+}
+
+function status_step() {
+    STATUS_MESSAGE="$STATUS_MESSAGE.";
+    echo -n ".";
+}
+
+####
+## Implementation
+####
+
 function print_text_block() {
     for var in "$@"
     do
@@ -327,14 +345,15 @@ then
     elif [[ -f "Dockerfile" ]]
     then
         # A script for developing a microservice
-        echo -n "Discovering script "
+        STATUS_MESSAGE="Discovering script "
+        status_echo
         image_name=`cat Dockerfile | grep -oP "^FROM \\K.*"`
-        echo -n "." # 1
+        status_step # 1
         command=$2
         interactive_cli="docker exec -i mucli"
         ensure_mu_cli_docker
 
-        echo -n "." # 2
+        status_step # 2
 
         # jq commands
         jq_documentation_filter_commands="jq -r '( .scripts[].documentation.command )'"
@@ -345,11 +364,11 @@ then
         jq_command_get_script="jq -r .environment.script"
         jq_command_get_image="jq -r .environment.image"
 
-        echo -n "." # 3
+        status_step # 3
 
         image_id=`docker images -q $image_name`
 
-        echo -n "." # 4
+        status_step # 4
 
         # make sure we have the image available
         if [[ -z image_id ]]
@@ -368,28 +387,29 @@ then
                 exit 1
             fi
             echo "DONE"
-            echo -n "Discovering scripts ...."
+
+            status_echo
             image_id=`docker images -q $image_name`
         fi
 
-        echo -n "." # 5
+        status_step # 5
 
         docker run --name mu_cli_tmp_copy --entrypoint /bin/sh $image_name
 
-        echo -n "." # 6
+        status_step # 6
 
         mkdir -p /tmp/mu/cache/$image_id
 
-        echo -n "." # 7
+        status_step # 7
 
         docker cp mu_cli_tmp_copy:/app/scripts /tmp/mu/cache/$image_id 2> /dev/null
 
-        echo -n "." # 8
+        status_step # 8
 
         # cleaning up copy container
         docker rm -f mu_cli_tmp_copy 2> /dev/null > /dev/null
 
-        echo -n "." # 9
+        status_step # 9
 
         config_location="/tmp/mu/cache/$image_id/scripts/config.json"
         cat_config_command="cat $config_location"
@@ -402,13 +422,11 @@ then
             exit 0
         fi
 
-        echo -n "." # 10
-
-        # command_spec=`$interactive_cli bash -c "$cat_config_command | $jq_documentation_get_command"`
+        status_step # 10
 
         command_spec=`sh -c "$interactive_cli bash -c \"$cat_config_command | $jq_documentation_get_command\""`
 
-        echo -n "." # 11
+        status_step # 11
 
         if [[ -z $command_spec ]] ;
         then
@@ -422,50 +440,50 @@ then
             exit 1
         fi
 
-        echo -n "." # 12
+        status_step # 12
 
         service_mount_point=`echo "$command_spec" | $interactive_cli $jq_command_get_mount_point`
-        echo -n "." # 13
+        status_step # 13
 
         service_folder="$PWD"
-        echo -n "." # 14
+        status_step # 14
         script_path=`echo "$command_spec" | $interactive_cli $jq_command_get_script`
-        echo -n "." # 15
+        status_step # 15
         script_folder_name=`dirname $script_path`
         script_file_name=`basename $script_path`
         folder_name="$script_folder_name"
         entry_point="$script_file_name"
         working_directory="/script"
-        echo -n "." # 16
+        status_step # 16
         arguments="${@:3}"
-        echo -n "." # 17
+        status_step # 17
         image_name=`echo "$command_spec" | $interactive_cli $jq_command_get_image`
-        echo -n "." # 18
+        status_step # 18
         interactive_mode=`echo "$command_spec" | $interactive_cli jq -r '.environment.interactive // false'`
-        echo -n "." # 19
+        status_step # 19
         it=""
         if [[ true = "$interactive_mode" ]];
         then
             it=" -it "
         fi
 
-        echo -n "." # 20
+        status_step # 20
 
-        # Shared environment variables
+        # docker arguments
 
         docker_volumes=(
             --volume $PWD:$service_mount_point
             --volume /tmp/mu/cache/$image_id/scripts/$folder_name:/script)
-        environment_variables=(
+        docker_environment_variables=(
             -e SERVICE_HOST_DIR="$PWD/")
 
-        echo -n "." # 21
+        status_step # 21
 
         echo " DONE"
 
         echo "Executing script $command $arguments"
 
-        docker run ${docker_volumes[@]} ${environment_variables[@]} $it -w $working_directory --rm --entrypoint ./$entry_point $image_name $arguments
+        docker run ${docker_volumes[@]} ${docker_environment_variables[@]} $it -w $working_directory --rm --entrypoint ./$entry_point $image_name $arguments
         exit 0
     else
         echo "Did not recognise location"
