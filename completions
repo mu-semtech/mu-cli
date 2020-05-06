@@ -2,6 +2,43 @@
 
 # Useful info found at http://www.linuxjournal.com/content/more-using-bash-complete-command
 
+sh -c "docker run --volume /tmp:/tmp semtech/mu-cli bash ensure-files.sh &"
+
+# I use variables that start with retval to indicate that they are only used to
+# populate the return value for the function whose name is the second part of the
+# variable name
+retval_get_image_list=""
+retval_get_repository_list=()
+retval_get_tags_for_image=""
+
+get_image_list() {
+    retval_get_image_list=""
+    get_repository_list
+    for repository_name in $(echo $retval_get_repository_list); do
+        repo_image_list=$(</tmp/musemtech/$repository_name.images)
+        retval_get_image_list="$retval_get_image_list $repo_image_list"
+    done
+}
+
+get_repository_list() {
+    retval_get_repository_list=()
+
+    # should be done for each repository name
+    repository="http://identifier"
+    repository_name="${repository//https:\/\/}"
+    repository_name="${repository_name//http:\/\/}"
+    retval_get_repository_list+=($repository_name)
+}
+
+get_tags_for_image() {
+    image_name=$1
+    retval_get_tags_for_image=""
+    for filename in $(find /tmp/musemtech/ -name "*.$image_name.tags"); do
+        tags_in_file=$(<$filename)
+        retval_get_tags_for_image="$retval_get_tags_for_images $tags_in_file"
+    done
+}
+
 mu_complete() {
     local cmd="${1##*/}"
     local word=${COMP_WORDS[COMP_CWORD]}
@@ -21,8 +58,25 @@ mu_complete() {
                     ;;
                 doc)
                     ;;
+                add)
+                    case ${words[3]} in
+                        service)
+                            if (( COMP_CWORD > 4 )); then
+                                IMAGE=${words[4]}
+                                get_tags_for_image $IMAGE
+                                 COMPREPLY=(`compgen -W "$retval_get_tags_for_image" $word`)
+                            else
+                                get_image_list
+                                 COMPREPLY=(`compgen -W "$retval_get_image_list" $word`)
+                            fi
+                            ;;
+                        *)
+                            COMPREPLY=(`compgen -W "service" $word`)
+                            ;;
+                    esac
+                    ;;
                 *)
-                    COMPREPLY=(`compgen -W "new doc" $word`)
+                    COMPREPLY=(`compgen -W "new doc add" $word`)
                     ;;
             esac
             ;;
@@ -39,6 +93,19 @@ mu_complete() {
                             ;;
                     esac
                     ;;
+                snippet)
+                    case ${words[3]} in
+                        compose)
+                        ;;
+                        creation)
+                        ;;
+                        development)
+                        ;;
+                        *)
+                            COMPREPLY=(`compgen -W "compose creation development" $word`)
+                            ;;
+                    esac
+                    ;;
                 *)
                     COMPREPLY=(`compgen -W "new" $word`)
                     ;;
@@ -52,8 +119,16 @@ mu_complete() {
                 COMPREPLY=(`compgen -W "new" $word`)
             esac
             ;;
+        start)
+            case ${words[2]} in
+                dev)
+                ;;
+                *)
+                    COMPREPLY=(`compgen -W "dev" $word`)
+            esac
+            ;;
         *)
-            COMPREPLY=(`compgen -W "project service migration" $word`)
+            COMPREPLY=(`compgen -W "project service script start logs" $word`)
             ;;
     esac
 }
