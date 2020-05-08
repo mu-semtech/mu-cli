@@ -233,7 +233,19 @@ then
 
             # 2. copy scripts contents from the image
             echo -n "."
-            docker cp mu_cli_tmp_copy:/app/scripts/install /tmp/mu/cache/mu_cli_tmp_copy/
+            docker cp mu_cli_tmp_copy:/app/scripts/install /tmp/mu/cache/mu_cli_tmp_copy/ > /dev/null 2> /dev/null
+            install_path_exists="$?"
+            if [[ $install_path_exists -ne "0" ]]
+            then
+                echo " FAILED"
+                echo ""
+                echo "Could not find install script for $image_name:$service_tag"
+                echo ""
+                echo "For more info on how to add an install script to an image,"
+                echo "see https://github.com/mu-semtech/mu-cli."
+                echo "Perhaps the maintainers would fancy a PR :-)"
+                exit 1
+            fi
             echo -n "."
             docker rm -f mu_cli_tmp_copy > /dev/null
             docker cp docker-compose.yml mucli:/tmp/
