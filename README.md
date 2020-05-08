@@ -200,10 +200,10 @@ A common and sensible name for the container containing your project specific sc
     services:
       ...
       project-scripts:
-        image: semetch/project-scripts:1.0.0
+        image: semtech/project-scripts:1.0.0
         volumes:
           ./config/project-scripts/:/app/scripts/
-        restart: 'no'
+        restart: "no"
 
 Before executing scripts, make sure the container has been created.  You should `up` the service.  The container should exit after a few seconds to preserve system resources, it's inner contenst will stay available to mu-scripts.
 
@@ -212,6 +212,35 @@ Before executing scripts, make sure the container has been created.  You should 
 Add the `config.json` script to the `./config/project-scripts/` folder of your mu-project.  Script files are best nested in folders beneath this folder, we suggest not to further nest scripts to keep them easy to find.
 
 Once the config has been added, you can find your scripts using `mu scripts project-scripts`.  Updates to the scripts don't require this service to be restarted or recreated as long as the sources are mounted.
+
+### Developing a service installation script
+
+Installation scripts make it easy to embed new services.  The script can run specific commands to update your configuration and can insert a snippet into the docker-compose.yml.
+
+The install script is based off the `install` top-level keyword in the service's `config.json`.  In order to install a service, a docker-compose.yml needs to be provided.  Optionally, scripts can be ran on installation.
+
+Set up the installation script key for the setup.
+
+    {
+      "version": "0.1",
+      "install": [
+        {
+          "type": "docker-compose",
+          "source": "install/"
+        }
+      ]
+    }
+
+This snippet will indent and append the `./install/docker-compose-snippet.yml` snippet when the service is installed.  The snippet should not have a top-level indentation.
+
+    migrationsservice:
+      image: semtech/mu-migrations-service
+      links:
+        - db:database
+      volumes:
+        - ./config/migrations:/data/migrations
+
+With this in place, installing the microservice will install the supplied snippet in the docker-compose.yml file of the project upon installation.
 
 
 ### Reading a configuration parameter in a script
