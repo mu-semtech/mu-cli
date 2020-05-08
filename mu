@@ -235,6 +235,8 @@ then
             echo -n "."
             docker cp mu_cli_tmp_copy:/app/scripts/install /tmp/mu/cache/mu_cli_tmp_copy/ > /dev/null 2> /dev/null
             install_path_exists="$?"
+            echo -n "."
+            docker rm -f mu_cli_tmp_copy > /dev/null # remove the container before going further
             if [[ $install_path_exists -ne "0" ]]
             then
                 echo " FAILED"
@@ -246,8 +248,6 @@ then
                 echo "Perhaps the maintainers would fancy a PR :-)"
                 exit 1
             fi
-            echo -n "."
-            docker rm -f mu_cli_tmp_copy > /dev/null
             docker cp docker-compose.yml mucli:/tmp/
             echo -n "."
             docker cp /tmp/mu/cache/mu_cli_tmp_copy/install/docker-compose-snippet.yml mucli:/tmp/
