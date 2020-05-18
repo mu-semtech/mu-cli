@@ -158,7 +158,7 @@ then
         git clone https://github.com/mu-semtech/mu-project.git $PROJECT_NAME
         cd $PROJECT_NAME
         rm -Rf ./.git
-        g    it init .
+        git init .
         git add .
         git commit -m "Creating new mu project"
         echo "Your mu project hack gear is ready to be hacked... hack on"
