@@ -51,9 +51,11 @@ function print_commands_documentation() {
     jq_documentation_get_command_local="jq -c '( .scripts[] | select(.documentation.command == \\\"$command\\\") )'"
     command_documentation=`sh -c "$interactive_cli bash -c \"$local_cat_command | $jq_documentation_get_command_local\""`
     command_description=`echo "$command_documentation" | $interactive_cli $jq_documentation_get_description`
+    command_description_indented=`echo "$command_description" | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\n      /g'`
+
     command_arguments=`echo "$command_documentation" | $interactive_cli $jq_documentation_get_arguments`
     print_text_block "  $command:" \
-                     "    description: $command_description"
+                     "    description: $command_description_indented"
     echo -n "    command: mu script $available_service $command"
     for command_argument in $command_arguments
     do
