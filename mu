@@ -1,5 +1,5 @@
 #!/bin/bash
-MU_CLI_VERSION="1.0.0"
+MU_CLI_VERSION="1.0.1"
 
 ####
 ## Sending command info
