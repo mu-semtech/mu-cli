@@ -362,15 +362,31 @@ then
         arguments="${@:4}"
         echo -n "."
         image_name=`echo "$command_spec" | $interactive_cli $jq_command_get_image`
-        echo ""
+        echo -n "."
+        # NOTE: this approach for discovering the project name will
+        # not work when running installation scripts for a service
+        docker_compose_project_name=`docker inspect --format '{{ index .Config.Labels "com.docker.compose.project"}}' $container_id`
+        echo -n "."
         interactive_mode=`echo "$command_spec" | $interactive_cli jq -r '.environment.interactive // false'`
+        echo -n "."
         it=""
-        if [[ true = "$interactive_mode" ]];
+        if [[ true == "$interactive_mode" ]];
         then
             it=" -it "
         fi
+        echo -n "."
 
-        docker run --volume $PWD:$app_mount_point --volume /tmp/mu/cache/$container_id/scripts/$folder_name:/script $it -w $working_directory --rm --entrypoint ./$entry_point $image_name $arguments
+        network_options=$()
+        join_networks=`echo "$command_spec" | $interactive_cli jq -r '.environment.join_networks // false'`
+        echo -n "."
+        if [[ true == "$join_networks" ]]
+        then
+            default_network_id=`docker network ls -f "label=com.docker.compose.project=$docker_compose_project_name" -f "label=com.docker.compose.network=default" -q`
+            network_options=("--network" "$default_network_id")
+        fi
+        echo -n "."
+
+        docker run ${network_options[@]} --volume $PWD:$app_mount_point --volume /tmp/mu/cache/$container_id/scripts/$folder_name:/script $it -w $working_directory --rm --entrypoint ./$entry_point $image_name $arguments
     elif [[ -f "Dockerfile" ]]
     then
         # A script for developing a microservice

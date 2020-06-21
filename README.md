@@ -343,6 +343,7 @@ This section describes the config.json as currently specified.  The section is a
 - **`scripts.environment`**: JSON object describing the general environment in which the script will run.
 - **`scripts.environment.image`**: Docker image of the container in which the script will run.  This does not need to be the same as the image of the service.
 - **`scripts.environment.interactive`**: When set to true, your Docker container is ran in interactive mode and can thus receive input from the user.  Non-interactive scripts are easier to call by external scripts.
+- **`scripts.environment.join_networks`**: For scripts which run in a project, this will make the script container join the default network.  Set to `true` to activate this option.
 - **`scripts.environment.script`**: The script which will be ran.  Make sure this script is executable (`chmod a+x your-script.sh`).  If the script can be ran by your container as a script, it's fine.  You could use a shebang like `#!/usr/bin/ruby` as the first line of your script to run a ruby script, or you could have a standard shell script which launches something totally different.
 - **`scripts.mounts.app`**: For scripts which run in a project, this is the place where the full project folder will be mounted.  It allows you to do things like create new files for the project.
 - **`scripts.mounts.service`**: For scripts which run from a template, this is the place where the service file will be mounted.  It allows you to do things like create new files for the service.
