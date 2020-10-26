@@ -63,9 +63,13 @@ function print_commands_documentation() {
     done
 }
 
+function print_source_docker_files() {
+    echo `ls docker-compose*.yml | tac | awk '{ print "-f " $1 }' | tr '\n' ' '`
+}
+
 function print_service_documentation() {
     service=$1
-    available_container_id=`docker-compose ps -q $service`
+    available_container_id=`docker-compose $(print_source_docker_files) ps -q $service`
     mkdir -p /tmp/mu/cache/$available_container_id
     docker cp $available_container_id:/app/scripts /tmp/mu/cache/$available_container_id 2> /dev/null
     local_cat_command="cat /tmp/mu/cache/$available_container_id/scripts/config.json"
@@ -119,7 +123,7 @@ function print_available_services_information() {
     jq_documentation_get_description="jq -r .documentation.description"
     jq_documentation_get_arguments="jq -r .documentation.arguments[]"
     echo "...looking for containers..."
-    available_services=`docker-compose ps --services`
+    available_services=`docker-compose $(print_source_docker_files) ps --services`
     echo ""
     echo "found services:"
     for available_service in $available_services
@@ -141,7 +145,7 @@ then
 elif [[ "logs" == $1 ]]
 then
     arguments="${@:2}"
-    docker-compose logs -f $arguments
+    docker-compose `print_source_docker_files` logs -f $arguments
 elif [[ "project" == $1 ]]
 then
     if [[ "new" == $2 ]]
@@ -319,7 +323,7 @@ then
             exit 0
         fi
 
-        container_id=`docker-compose ps -q $service`
+        container_id=`docker-compose $(print_source_docker_files) ps -q $service`
         if [[ -z $container_id ]] ;
         then
             echo ""
