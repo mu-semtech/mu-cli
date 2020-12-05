@@ -47,7 +47,8 @@ function ensure_mu_cli_docker() {
 }
 
 function print_commands_documentation() {
-    command=$1
+    service=$1
+    command=$2
     jq_documentation_get_command_local="jq -c '( .scripts[] | select(.documentation.command == \\\"$command\\\") )'"
     command_documentation=`sh -c "$interactive_cli bash -c \"$local_cat_command | $jq_documentation_get_command_local\""`
     command_description=`echo "$command_documentation" | $interactive_cli $jq_documentation_get_description`
@@ -56,7 +57,7 @@ function print_commands_documentation() {
     command_arguments=`echo "$command_documentation" | $interactive_cli $jq_documentation_get_arguments`
     print_text_block "  $command:" \
                      "    description: $command_description_indented"
-    echo -n "    command: mu script $available_service $command"
+    echo -n "    command: mu script $service $command"
     for command_argument in $command_arguments
     do
         echo -n " [$command_argument]"
@@ -73,7 +74,7 @@ function print_service_documentation() {
         supported_commands=`sh -c "$interactive_cli bash -c \"$local_cat_command | $jq_documentation_filter_commands\""`
         for supported_command in $supported_commands
         do
-            print_commands_documentation $supported_command
+            print_commands_documentation $service $supported_command
             print_text_block "" ""
         done
         echo ""
@@ -97,7 +98,7 @@ function print_service_scripts_documentation() {
                              ""
            for supported_command in $supported_commands
            do
-               print_commands_documentation $supported_command
+               print_commands_documentation "[service]" $supported_command
                print_text_block "" ""
            done
            echo ""
