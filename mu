@@ -392,8 +392,7 @@ then
         then
             volume_mounts+=(--volume $PWD:$app_mount_point)
         fi
-        echo "
-        docker run ${network_options[@]} ${volume_mounts[@]} $it -w $working_directory --rm --entrypoint ./$entry_point $image_name $arguments"
+        docker run ${network_options[@]} ${volume_mounts[@]} $it -w $working_directory --rm --entrypoint ./$entry_point $image_name $arguments
     elif [[ -f "Dockerfile" ]]
     then
         # A script for developing a microservice
