@@ -67,20 +67,24 @@ function print_commands_documentation() {
 function print_service_documentation() {
     service=$1
     available_container_id=`docker-compose ps -q $service`
-    mkdir -p /tmp/mu/cache/$available_container_id
-    docker cp $available_container_id:/app/scripts /tmp/mu/cache/$available_container_id 2> /dev/null
-    local_cat_command="cat /tmp/mu/cache/$available_container_id/scripts/config.json"
-    if test -f "/tmp/mu/cache/$available_container_id/scripts/config.json"; then
-        supported_commands=`sh -c "$interactive_cli bash -c \"$local_cat_command | $jq_documentation_filter_commands\""`
-        for supported_command in $supported_commands
-        do
-            print_commands_documentation $service $supported_command
-            print_text_block "" ""
-        done
-        echo ""
+    if [[ $? -ne 0 ]]; then
+        print_text_block "" no container running for service $service""
     else
-        print_text_block "  no scripts found" \
+        mkdir -p /tmp/mu/cache/$available_container_id
+        docker cp $available_container_id:/app/scripts /tmp/mu/cache/$available_container_id 2> /dev/null
+        local_cat_command="cat /tmp/mu/cache/$available_container_id/scripts/config.json"
+        if test -f "/tmp/mu/cache/$available_container_id/scripts/config.json"; then
+            supported_commands=`sh -c "$interactive_cli bash -c \"$local_cat_command | $jq_documentation_filter_commands\""`
+            for supported_command in $supported_commands
+            do
+                print_commands_documentation $service $supported_command
+                print_text_block "" ""
+            done
+            echo ""
+        else
+            print_text_block "  no scripts found" \
                          ""
+        fi
     fi
 }
 
