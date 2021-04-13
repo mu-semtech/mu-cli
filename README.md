@@ -202,7 +202,7 @@ A common and sensible name for the container containing your project specific sc
       project-scripts:
         image: semtech/project-scripts:1.0.0
         volumes:
-          ./config/project-scripts/:/app/scripts/
+          - ./config/project-scripts/:/app/scripts/
         restart: "no"
 
 Before executing scripts, make sure the container has been created.  You should `up` the service.  The container should exit after a few seconds to preserve system resources, it's inner contents will stay available to mu-scripts.
