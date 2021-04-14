@@ -68,7 +68,7 @@ function print_service_documentation() {
     service=$1
     available_container_id=`docker-compose ps -q $service`
     if [[ $? -ne 0 ]]; then
-        print_text_block "" no container running for service $service""
+        print_text_block "" no container instance found for service $service, the container needs to be created before you can run its scripts. ""
     else
         mkdir -p /tmp/mu/cache/$available_container_id
         docker cp $available_container_id:/app/scripts /tmp/mu/cache/$available_container_id 2> /dev/null
