@@ -47,7 +47,8 @@ function ensure_mu_cli_docker() {
 }
 
 function print_commands_documentation() {
-    command=$1
+    service=$1
+    command=$2
     jq_documentation_get_command_local="jq -c '( .scripts[] | select(.documentation.command == \\\"$command\\\") )'"
     command_documentation=`sh -c "$interactive_cli bash -c \"$local_cat_command | $jq_documentation_get_command_local\""`
     command_description=`echo "$command_documentation" | $interactive_cli $jq_documentation_get_description`
@@ -56,7 +57,7 @@ function print_commands_documentation() {
     command_arguments=`echo "$command_documentation" | $interactive_cli $jq_documentation_get_arguments`
     print_text_block "  $command:" \
                      "    description: $command_description_indented"
-    echo -n "    command: mu script $available_service $command"
+    echo -n "    command: mu script $service $command"
     for command_argument in $command_arguments
     do
         echo -n " [$command_argument]"
@@ -77,7 +78,7 @@ function print_service_documentation() {
         supported_commands=`sh -c "$interactive_cli bash -c \"$local_cat_command | $jq_documentation_filter_commands\""`
         for supported_command in $supported_commands
         do
-            print_commands_documentation $supported_command
+            print_commands_documentation $service $supported_command
             print_text_block "" ""
         done
         echo ""
@@ -101,7 +102,7 @@ function print_service_scripts_documentation() {
                              ""
            for supported_command in $supported_commands
            do
-               print_commands_documentation $supported_command
+               print_commands_documentation "[service]" $supported_command
                print_text_block "" ""
            done
            echo ""
@@ -310,7 +311,7 @@ then
         jq_documentation_get_command="jq -c '( .scripts[] | select(.documentation.command == \\\"$command\\\") )'"
         jq_documentation_get_description="jq -r .documentation.description"
         jq_documentation_get_arguments="jq -r .documentation.arguments[]"
-        jq_command_get_mount_point="jq -r .mounts.app"
+        jq_command_get_mount_point="jq -r '.mounts.app // false'"
         jq_command_get_script="jq -r .environment.script"
         jq_command_get_image="jq -r .environment.image"
 
@@ -353,7 +354,7 @@ then
             exit 1
         fi
         echo -n "."
-        app_mount_point=`echo "$command_spec" | $interactive_cli $jq_command_get_mount_point`
+        app_mount_point=`echo "$command_spec" | $interactive_cli bash -c "$jq_command_get_mount_point"`
         app_folder="$PWD"
         echo -n "."
         script_path=`echo "$command_spec" | $interactive_cli $jq_command_get_script`
@@ -390,7 +391,12 @@ then
         fi
         echo -n "."
 
-        docker run ${network_options[@]} --volume $PWD:$app_mount_point --volume /tmp/mu/cache/$container_id/scripts/$folder_name:/script $it -w $working_directory --rm --entrypoint ./$entry_point $image_name $arguments
+        volume_mounts=(--volume /tmp/mu/cache/$container_id/scripts/$folder_name:/script)
+        if [[ false != "$app_mount_point" ]]
+        then
+            volume_mounts+=(--volume $PWD:$app_mount_point)
+        fi
+        docker run ${network_options[@]} ${volume_mounts[@]} $it -w $working_directory --rm --entrypoint ./$entry_point $image_name $arguments
     elif [[ -f "Dockerfile" ]]
     then
         # A script for developing a microservice
