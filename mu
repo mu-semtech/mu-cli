@@ -171,9 +171,9 @@ then
     elif [[ "doc" == $2 ]]
     then
         echo "Generating documentation for project in `pwd`"
-        docker run --rm -v `pwd`/config/resources:/config -v `pwd`/tmp:/config/output/ madnificent/cl-resources-plantuml-generator
+        docker run --rm -v `pwd`/config/resources:/config -v `pwd`/doc:/config/output/ madnificent/cl-resources-plantuml-generator
         echo "Generated JSONAPI svg"
-        docker run --rm -v `pwd`/config/resources:/config -v `pwd`/tmp:/config/output/ madnificent/cl-resources-ttl-generator
+        docker run --rm -v `pwd`/config/resources:/config -v `pwd`/doc:/config/output/ madnificent/cl-resources-ttl-generator
         echo "Generated ttl file for http://visualdataweb.de/webvowl/"
     elif [[ "add" == $2 ]]
     then
