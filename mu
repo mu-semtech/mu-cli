@@ -593,7 +593,7 @@ then
             echo "Creating new javascript service for $SERVICE_NAME"
             mkdir $SERVICE_NAME
             cd $SERVICE_NAME
-            echo "FROM semtech/mu-javascript-template:1.3.5" >> Dockerfile
+            echo "FROM semtech/mu-javascript-template:1.5.0-beta.1" >> Dockerfile
             echo "LABEL maintainer=\"$USER_NAME <$EMAIL>\"" >> Dockerfile
             echo "" >> Dockerfile
             echo "# see https://github.com/mu-semtech/mu-javascript-template for more info" >> Dockerfile
@@ -614,7 +614,7 @@ then
             DOCKER_SERVICE_NAME=`echo $SERVICE_NAME | sed -e s/-//g`
             echo ""
             echo "  $DOCKER_SERVICE_NAME:"
-            echo "    image: semtech/mu-javascript-template:1.3.5"
+            echo "    image: semtech/mu-javascript-template:1.5.0-beta.1"
             echo "    links:"
             echo "      - db:database"
             echo "    ports:"
