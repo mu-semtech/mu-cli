@@ -193,19 +193,19 @@ You can keep iterating between steps 3-5.  There is no need to make a build of y
 
 Many scripts can be shared across users.  Some scripts are different and belong to your project.
 
-Scripts are always bound to a microservice.  The [semtech/mu-scripts](https://github.com/mu-semtech/mu-scripts/) image is a blank state scripts container.  It does not execute anything by default and exits after a few seconds.  This approach allows you to store your project-specific scripts.
+Scripts are always bound to a microservice.  The [semtech/simple-script-store](https://github.com/mu-semtech/simple-script-store/) image is a blank state scripts container.  It does not execute anything by default and exits after a few seconds.  This approach allows you to store your project-specific scripts.
 
 A common and sensible name for the container containing your project specific scripts is `project-scripts`.  A common mount-point for the the scripts then becomes `./config/project-scripts`.  The resulting docker-compose.yml would thus become:
 
     services:
       ...
       project-scripts:
-        image: semtech/project-scripts:1.0.0
+        image: semtech/simple-script-store:1.0.0
         volumes:
           - ./config/project-scripts/:/app/scripts/
         restart: "no"
 
-Before executing scripts, make sure the container has been created.  You should `up` the service.  The container should exit after a few seconds to preserve system resources, it's inner contents will stay available to mu-scripts.
+Before executing scripts, make sure the container has been created.  You should `up` the service.  The container should exit after a few seconds to preserve system resources, it's inner contents will stay available to simple-script-store.
 
     docker-compose up -d project-scripts
 
@@ -320,7 +320,7 @@ There are a few advantages to this approach:
   - We expect the majority of the scripts to be tied to a microservice.  It makes sense to maintain the scripts which match a specific version of the microservice, so it makes sense for the scripts to be maintained with the sourcecode.
   - If you are using mu.semte.ch, you must have found ways to share Docker containers.  You already have a sturdy way of sharing scripts.
   - By storing the scripts in a container and supporting mounted volumes, it's easy to develop scripts by mounting them in a container.
-  - Although we can easily share scripts with a microservice, you may add a container which exits early (like semtech/mu-scripts) to embed project-specific scripts in the same manner.
+  - Although we can easily share scripts with a microservice, you may add a container which exits early (like semtech/simple-script-store) to embed project-specific scripts in the same manner.
 
 A possible downside of our approach is that the image may get polluted with large scripts.  We doubt this will be an issue in practice as you can run the scripts in a container with a different image.  As such, you can embed extra dependencies in such an image.  If the custom script itself becomes large, you can create a custom docker build for storing the information about that script.
 
