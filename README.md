@@ -200,7 +200,7 @@ A common and sensible name for the container containing your project specific sc
     services:
       ...
       project-scripts:
-        image: semtech/mu-scripts:1.0.0
+        image: semtech/simple-script-store:1.0.0
         volumes:
           ./config/project-scripts/:/app/scripts/
         restart: "no"
