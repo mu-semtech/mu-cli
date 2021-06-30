@@ -62,7 +62,7 @@ function confirm_existing_service() {
         echo "Container for $service does not exist yet.  May we create a container for $service without starting it?"
         read -p "Create container? [Y/n]: " -n 1 -s -r INPUT
         case ${INPUT:-Y} in
-            [Yy]*) `docker-compose $(print_source_docker_files) up --no-start $service` ;;
+            [Yy]*) `docker-compose $(print_source_docker_files) up --no-start $service >> /dev/null`;;
             [Nn]*) echo "NOT creating container"; return 1 ;;
         esac
     else
