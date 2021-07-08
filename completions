@@ -24,7 +24,7 @@ get_repository_list() {
     retval_get_repository_list=()
 
     # should be done for each repository name
-    repository="http://identifier"
+    repository="https://info.mu.semte.ch"
     repository_name="${repository//https:\/\/}"
     repository_name="${repository_name//http:\/\/}"
     retval_get_repository_list+=($repository_name)
