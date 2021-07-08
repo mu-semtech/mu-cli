@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # comment out the info mu semtech repo when testing locally
-#repository="https://info.mu.semte.ch"
+repository="https://info.mu.semte.ch"
 #repository="http://localhost"
-repository=$1
+#repository=$1
 
 
 # stripping out : and / from the repository name
