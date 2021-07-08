@@ -2,7 +2,7 @@
 
 # Useful info found at http://www.linuxjournal.com/content/more-using-bash-complete-command
 
-MU_CLI_VERSION="1.0.2"
+MU_CLI_VERSION="1.0.3"
 sh -c "docker run --rm --volume /tmp:/tmp semtech/mu-cli:${MU_CLI_VERSION} bash ensure-files.sh &"
 
 # I use variables that start with retval to indicate that they are only used to
