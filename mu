@@ -227,7 +227,7 @@ then
             interactive_cli="docker exec -i mucli"
             echo -n "."
 
-            service_image_description=`curl -s "https://info.mu.semte.ch/microservice-revisions?filter[microservice][:exact:title]=$service_image&filter[:exact:version]=$service_tag&page[size]=1"`
+            service_image_description=`curl -s -G -d "filter[microservice][:exact:title]=$service_image" -d "filter[:exact:version]=$service_tag" -d "page[size]=1" https://info.mu.semte.ch/microservice-revisions`
 
             if [[ "$?" -ne "0" ]]
             then
