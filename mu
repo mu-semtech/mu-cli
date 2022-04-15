@@ -639,7 +639,7 @@ then
             echo "Creating new javascript service for $SERVICE_NAME"
             mkdir $SERVICE_NAME
             cd $SERVICE_NAME
-            echo "FROM semtech/mu-javascript-template:1.5.0-beta.1" >> Dockerfile
+            echo "FROM semtech/mu-javascript-template:1.6.0" >> Dockerfile
             echo "LABEL maintainer=\"$USER_NAME <$EMAIL>\"" >> Dockerfile
             echo "" >> Dockerfile
             echo "# see https://github.com/mu-semtech/mu-javascript-template for more info" >> Dockerfile
