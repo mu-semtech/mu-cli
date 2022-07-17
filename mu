@@ -672,9 +672,46 @@ then
             echo "      - \"`pwd`/:/app\""
             echo ""
             echo "All set to to hack!"
+        elif [[ "python" == $LANGUAGE ]]
+        then
+            USER_NAME=`git config user.name`
+            EMAIL=`git config user.email`
+            USER=`whoami`
+            echo "Creating new python service for $SERVICE_NAME"
+            mkdir $SERVICE_NAME
+            cd $SERVICE_NAME
+            echo "FROM semtech/mu-python-template:2.0.0-beta.1" >> Dockerfile
+            echo "LABEL maintainer=\"$USER_NAME <$EMAIL>\"" >> Dockerfile
+            echo "" >> Dockerfile
+            echo "# see https://github.com/mu-semtech/mu-python-template for more info" >> Dockerfile
+            echo "# see https://github.com/mu-semtech/mu-python-template for more info" >> web.py
+            echo "" >> web.py
+	    echo "@app.route(\"/hello\")" >> web.py
+	    echo "def hello():" >> web.py
+            echo "    return \"Hello from the mu-python-template!\"" >> web.py
+            echo "" >> web.py
+            git init .
+            git add .
+            git commit -m "Initializing new mu python service"
+            echo "You can add the following snippet in your pipeline"
+            echo "to hack this service live."
+            DOCKER_SERVICE_NAME=`echo $SERVICE_NAME | sed -e s/-//g`
+            echo ""
+            echo "  $DOCKER_SERVICE_NAME:"
+            echo "    image: semtech/mu-python-template:2.0.0-beta.1"
+            echo "    links:"
+            echo "      - db:database"
+            echo "    ports:"
+            echo '      - "8888:80"'
+            echo "    environment:"
+            echo '      MODE: "development"'
+            echo "    volumes:"
+            echo "      - \"`pwd`/:/app\""
+            echo ""
+            echo "All set to to hack!"
         else
             echo "Don't know language $LANGUAGE"
-            echo "Known languages: [ ruby, javascript ]"
+            echo "Known languages: [ ruby, javascript, python ]"
         fi
     else
         echo "Don't know service command $2"
