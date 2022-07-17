@@ -89,8 +89,10 @@ mu_complete() {
                             ;;
                         javascript)
                             ;;
+			python)
+		            ;;
                         *)
-                            COMPREPLY=(`compgen -W "ruby javascript" $word`)
+                            COMPREPLY=(`compgen -W "ruby javascript python" $word`)
                             ;;
                     esac
                     ;;
