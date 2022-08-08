@@ -590,11 +590,39 @@ then
     fi
 elif [[ "service" == $1 ]]
 then
-    echo "Mu service commands"
+    # Mu service commands
     if [[ "new" == $2 ]]
     then
+        KNOWN_LANGUAGES="ruby, javascript, python" # note repeated in if below
+
         LANGUAGE=$3
         SERVICE_NAME=$4
+
+        if [[ $LANGUAGE != "ruby" && $LANGUAGE != "javascript" && $LANGUAGE != "python" ]]
+        then
+            if [ -z $LANGUAGE ]
+            then
+                print_text_block "Please specify a service language." \
+                                 "" \
+                                 "The expected usage for this command is:" \
+                                 "  mu service new [$KNOWN_LANGUAGES] [service name]"
+            else
+                print_text_block "Unknown service language." \
+                                 "" \
+                                 "The expected usage for this command is:" \
+                                 "  mu service new [$KNOWN_LANGUAGES] [service name]"
+            fi
+            exit 1
+        fi
+
+        if [[ -z "$SERVICE_NAME" ]]
+        then
+            print_text_block "Please specify a service name." \
+                             "" \
+                             "The expected usage for this command is:" \
+                             "  mu service new $LANGUAGE [service name]"
+            exit 1
+        fi
         echo "Creating new service"
         if [[ "ruby" == $LANGUAGE ]]
         then
@@ -672,13 +700,52 @@ then
             echo "      - \"`pwd`/:/app\""
             echo ""
             echo "All set to to hack!"
-        else
-            echo "Don't know language $LANGUAGE"
-            echo "Known languages: [ ruby, javascript ]"
+        elif [[ "python" == $LANGUAGE ]]
+        then
+            USER_NAME=`git config user.name`
+            EMAIL=`git config user.email`
+            USER=`whoami`
+            echo "Creating new python service for $SERVICE_NAME"
+            mkdir $SERVICE_NAME
+            cd $SERVICE_NAME
+            echo "FROM semtech/mu-python-template:2.0.0-beta.1" >> Dockerfile
+            echo "LABEL maintainer=\"$USER_NAME <$EMAIL>\"" >> Dockerfile
+            echo "" >> Dockerfile
+            echo "# see https://github.com/mu-semtech/mu-python-template for more info" >> Dockerfile
+            echo "# see https://github.com/mu-semtech/mu-python-template for more info" >> web.py
+            echo "" >> web.py
+	    echo "@app.route(\"/hello\")" >> web.py
+	    echo "def hello():" >> web.py
+            echo "    return \"Hello from the mu-python-template!\"" >> web.py
+            echo "" >> web.py
+            git init .
+            git add .
+            git commit -m "Initializing new mu python service"
+            echo "You can add the following snippet in your pipeline"
+            echo "to hack this service live."
+            DOCKER_SERVICE_NAME=`echo $SERVICE_NAME | sed -e s/-//g`
+            echo ""
+            echo "  $DOCKER_SERVICE_NAME:"
+            echo "    image: semtech/mu-python-template:2.0.0-beta.1"
+            echo "    links:"
+            echo "      - db:database"
+            echo "    ports:"
+            echo '      - "8888:80"'
+            echo "    environment:"
+            echo '      MODE: "development"'
+            echo "    volumes:"
+            echo "      - \"`pwd`/:/app\""
+            echo ""
+            echo "All set to to hack!"
         fi
     else
-        echo "Don't know service command $2"
-        echo "Known commands: [ shell, new ]"
+        if [[ -z "$2" ]]
+        then
+            echo "Please specify argument for service command"
+        else
+            echo "Don't know service argument $2"
+        fi
+        echo "Known arguments: [ shell, new ]"
     fi
 else
     echo "Don't know command $1"
