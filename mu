@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 MU_CLI_VERSION="1.0.3"
 
 ####
