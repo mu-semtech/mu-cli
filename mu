@@ -590,11 +590,39 @@ then
     fi
 elif [[ "service" == $1 ]]
 then
-    echo "Mu service commands"
+    # Mu service commands
     if [[ "new" == $2 ]]
     then
+        KNOWN_LANGUAGES="ruby, javascript, python" # note repeated in if below
+
         LANGUAGE=$3
         SERVICE_NAME=$4
+
+        if [[ $LANGUAGE != "ruby" && $LANGUAGE != "javascript" && $LANGUAGE != "python" ]]
+        then
+            if [ -z $LANGUAGE ]
+            then
+                print_text_block "Please specify a service language." \
+                                 "" \
+                                 "The expected usage for this command is:" \
+                                 "  mu service new [$KNOWN_LANGUAGES] [service name]"
+            else
+                print_text_block "Unknown service language." \
+                                 "" \
+                                 "The expected usage for this command is:" \
+                                 "  mu service new [$KNOWN_LANGUAGES] [service name]"
+            fi
+            exit 1
+        fi
+
+        if [[ -z "$SERVICE_NAME" ]]
+        then
+            print_text_block "Please specify a service name." \
+                             "" \
+                             "The expected usage for this command is:" \
+                             "  mu service new $LANGUAGE [service name]"
+            exit 1
+        fi
         echo "Creating new service"
         if [[ "ruby" == $LANGUAGE ]]
         then
@@ -709,13 +737,15 @@ then
             echo "      - \"`pwd`/:/app\""
             echo ""
             echo "All set to to hack!"
-        else
-            echo "Don't know language $LANGUAGE"
-            echo "Known languages: [ ruby, javascript, python ]"
         fi
     else
-        echo "Don't know service command $2"
-        echo "Known commands: [ shell, new ]"
+        if [[ -z "$2" ]]
+        then
+            echo "Please specify argument for service command"
+        else
+            echo "Don't know service argument $2"
+        fi
+        echo "Known arguments: [ shell, new ]"
     fi
 else
     echo "Don't know command $1"
