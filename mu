@@ -688,7 +688,7 @@ then
             DOCKER_SERVICE_NAME=`echo $SERVICE_NAME | sed -e s/-//g`
             echo ""
             echo "  $DOCKER_SERVICE_NAME:"
-            echo "    image: semtech/mu-javascript-template:1.5.0-beta.1"
+            echo "    image: semtech/mu-javascript-template:1.6.0"
             echo "    links:"
             echo "      - db:database"
             echo "    ports:"
