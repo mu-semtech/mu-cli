@@ -16,6 +16,15 @@ function status_step() {
 }
 
 ####
+## Redirect Docker Compose V1 to Compose V2 if needed
+####
+if ! [command -v docker-compose >/dev/null 2>&1 ]; then
+    function docker-compose() {
+        docker compose --compatibility $@;
+    }
+fi
+
+####
 ## Implementation
 ####
 
