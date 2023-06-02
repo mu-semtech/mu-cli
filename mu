@@ -53,7 +53,7 @@ function ensure_mu_cli_docker() {
 ####
 function confirm_existing_service() {
     service=$1
-    available_container_id=`docker-compose $(print_source_docker_files) ps -q $service`
+    available_container_id=`docker compose $(print_source_docker_files) ps -a -q $service`
     if [[ $? -ne 0 ]]; then
         echo "Service $service not found"
         return 1;
@@ -62,7 +62,7 @@ function confirm_existing_service() {
         echo "Container for $service does not exist yet.  May we create a container for $service without starting it?"
         read -p "Create container? [Y/n]: " -n 1 -s -r INPUT
         case ${INPUT:-Y} in
-            [Yy]*) `docker-compose $(print_source_docker_files) up --no-start $service >> /dev/null`;;
+            [Yy]*) `docker compose $(print_source_docker_files) up --no-start $service >> /dev/null`;;
             [Nn]*) echo "NOT creating container"; return 1 ;;
         esac
     else
@@ -97,7 +97,7 @@ function print_service_documentation() {
     if confirm_existing_service $service
     then
         service=$1
-        available_container_id=`docker-compose $(print_source_docker_files) ps -q $service`
+        available_container_id=`docker compose $(print_source_docker_files) ps -a -q $service`
         mkdir -p /tmp/mu/cache/$available_container_id
         docker cp $available_container_id:/app/scripts /tmp/mu/cache/$available_container_id 2> /dev/null
         local_cat_command="cat /tmp/mu/cache/$available_container_id/scripts/config.json"
@@ -155,7 +155,7 @@ function print_available_services_information() {
     jq_documentation_get_description="jq -r .documentation.description"
     jq_documentation_get_arguments="jq -r .documentation.arguments[]"
     echo "...looking for containers..."
-    available_services=`docker-compose $(print_source_docker_files) ps --services`
+    available_services=`docker compose $(print_source_docker_files) ps -a --services`
     echo ""
     echo "found services:"
     for available_service in $available_services
@@ -358,7 +358,7 @@ then
         # get hold of the container that defines the script
         confirm_existing_service $service
         service_exists=$?
-        container_id=`docker-compose $(print_source_docker_files) ps -q $service`
+        container_id=`docker compose $(print_source_docker_files) ps -a -q $service`
         if [[ $? -ne 0 ]] ; # the service doesn't exist in the docker-compose
         then
             echo ""
