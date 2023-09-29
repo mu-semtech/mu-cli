@@ -170,14 +170,14 @@ then
     echo "Launching mu.semte.ch project ..."
     if [[ "dev" == $2 ]]
     then
-        docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+        docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
     else
-        docker-compose -f docker-compose.yml up -d
+        docker compose -f docker-compose.yml up -d
     fi
 elif [[ "logs" == $1 ]]
 then
     arguments="${@:2}"
-    docker-compose `print_source_docker_files` logs -f $arguments
+    docker compose `print_source_docker_files` logs -f $arguments
 elif [[ "project" == $1 ]]
 then
     if [[ "new" == $2 ]]
