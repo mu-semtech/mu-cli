@@ -188,12 +188,28 @@ then
             print_text_block "Please specify a project name." \
                              "" \
                              "The expected usage for this command is:" \
-                             "  mu project new [project name]"
+                             "  mu project new [project name] [--with-auth]"
             exit 1
         fi
 
+        WITH_AUTH=$4
+        if [[ -n "$WITH_AUTH" && ( "$WITH_AUTH" != "--with-auth" ) ]]
+        then
+            print_text_block "$WITH_AUTH was not understood" \
+                             "" \
+                             "Please specify to use --with-auth or don't supply the parameter." \
+                             "" \
+                             "The expected usage for this command is:" \
+                             "  mu project new [project name] [--with-auth]"
+            exit 1
+        fi
         echo "Creating new mu project for $PROJECT_NAME"
-        git clone https://github.com/mu-semtech/mu-project.git $PROJECT_NAME
+        if [[ -n "$WITH_AUTH" ]]
+        then
+            git clone -b "feature/add-auth" https://github.com/mu-semtech/mu-project.git $PROJECT_NAME
+        else
+            git clone https://github.com/mu-semtech/mu-project.git $PROJECT_NAME
+        fi
         cd $PROJECT_NAME
         rm -Rf ./.git
         git init .
