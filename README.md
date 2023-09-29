@@ -65,7 +65,7 @@ Let's first see which commands the migrations service offers.  The description o
 
 We can list the commands to execute with the -h option.
 
-    docker-compose up -d
+    docker compose up -d
 
     mu script migrations -h
 
@@ -90,7 +90,7 @@ You can develop scripts to add to your project, and you can develop them live by
 
 Make sure you `up` your stack again so the scripts are picked up when running the `mu` command:
 
-    docker-compose up -d
+    docker compose up -d
 
 #### Adding the metadata for our command
 
@@ -159,7 +159,7 @@ In your docker-compose.yml, make sure your service has the right volume attached
         volumes:
           /path/to/scripts/:/app/scripts
 
-Make sure the service is created by running `docker-compose up -d` (optionally followed by `docker-compose stop`) and ensure you don't remove the `mine` container when running scripts (containers which are not created, will not be used for finding scripts).
+Make sure the service is created by running `docker compose up -d` (optionally followed by `docker compose stop`) and ensure you don't remove the `mine` container when running scripts (containers which are not created, will not be used for finding scripts).
 
 Add the `config.json` in the `/path/to/scripts/` folder.
 
@@ -207,7 +207,7 @@ A common and sensible name for the container containing your project specific sc
 
 Before executing scripts, make sure the container has been created.  You should `up` the service.  The container should exit after a few seconds to preserve system resources, it's inner contents will stay available to simple-script-store.
 
-    docker-compose up -d project-scripts
+    docker compose up -d project-scripts
 
 Add the `config.json` script to the `./config/project-scripts/` folder of your mu-project.  Script files are best nested in folders beneath this folder, we suggest not to further nest scripts to keep them easy to find.
 
