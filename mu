@@ -155,7 +155,7 @@ function print_available_services_information() {
     jq_documentation_get_description="jq -r .documentation.description"
     jq_documentation_get_arguments="jq -r .documentation.arguments[]"
     echo "...looking for containers..."
-    available_services=`docker compose $(print_source_docker_files) ps -a --services`
+    available_services=`docker compose $(print_source_docker_files) config --services`
     echo ""
     echo "found services:"
     for available_service in $available_services
