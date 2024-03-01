@@ -231,7 +231,7 @@ then
         docker run --rm -v `pwd`/config/resources:/config -v `pwd`/doc:/config/output/ madnificent/cl-resources-plantuml-generator
         echo "Generated JSONAPI svg"
         docker run --rm -v `pwd`/config/resources:/config -v `pwd`/doc:/config/output/ madnificent/cl-resources-ttl-generator
-        echo "Generated ttl file for http://visualdataweb.de/webvowl/"
+        echo "Generated ttl file for https://service.tib.eu/webvowl/ or https://webvowl.tools.redpencil.io/"
     elif [[ "add" == $2 ]]
     then
         if [[ "service" == $3 ]]; then
