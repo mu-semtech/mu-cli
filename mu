@@ -657,7 +657,7 @@ then
             echo "Creating new ruby service for $SERVICE_NAME"
             mkdir $SERVICE_NAME
             cd $SERVICE_NAME
-            echo "FROM semtech/mu-ruby-template:2.10.0" >> Dockerfile
+            echo "FROM semtech/mu-ruby-template:3.1.0" >> Dockerfile
             echo "LABEL maintainer=\"$USER_NAME <$EMAIL>\"" >> Dockerfile
             echo "# see https://github.com/mu-semtech/mu-ruby-template for more info" >> Dockerfile
             echo "# see https://github.com/mu-semtech/mu-ruby-template for more info" >> web.rb
@@ -673,11 +673,10 @@ then
             DOCKER_SERVICE_NAME=`echo $SERVICE_NAME | sed -e s/-//g`
             echo ""
             echo "  $DOCKER_SERVICE_NAME:"
-            echo "    image: semtech/mu-ruby-template:2.10.0"
-            echo "    links:"
-            echo "      - db:database"
+            echo "    image: semtech/mu-ruby-template:3.1.0"
             echo "    ports:"
             echo '      - "8888:80"'
+            echo '      - "9229:9229"'
             echo "    environment:"
             echo '      RACK_ENV: "development"'
             echo "    volumes:"
@@ -692,7 +691,7 @@ then
             echo "Creating new javascript service for $SERVICE_NAME"
             mkdir $SERVICE_NAME
             cd $SERVICE_NAME
-            echo "FROM semtech/mu-javascript-template:1.6.0" >> Dockerfile
+            echo "FROM semtech/mu-javascript-template:1.8.0" >> Dockerfile
             echo "LABEL maintainer=\"$USER_NAME <$EMAIL>\"" >> Dockerfile
             echo "" >> Dockerfile
             echo "# see https://github.com/mu-semtech/mu-javascript-template for more info" >> Dockerfile
@@ -713,7 +712,7 @@ then
             DOCKER_SERVICE_NAME=`echo $SERVICE_NAME | sed -e s/-//g`
             echo ""
             echo "  $DOCKER_SERVICE_NAME:"
-            echo "    image: semtech/mu-javascript-template:1.6.0"
+            echo "    image: semtech/mu-javascript-template:1.8.0"
             echo "    links:"
             echo "      - db:database"
             echo "    ports:"
