@@ -89,7 +89,16 @@ function print_commands_documentation() {
 }
 
 function print_source_docker_files() {
-    echo `ls docker-compose*.yml | tac | awk '{ print "-f " $1 }' | tr '\n' ' '`
+    # NOTE: This is used to create the -f options for docker compose.
+    # If a user has specified DOCKER_COMPOSE_FILE (such as through bash
+    # script automatically picking up the .dev.yml), then we emit an
+    # empty string to let docker use its default processing.
+    if [[ -z "$DOCKER_COMPOSE_FILE" ]]
+    then
+        echo ""
+    else
+        echo `ls docker-compose*.yml | tac | awk '{ print "-f " $1 }' | tr '\n' ' '`
+    fi
 }
 
 function print_service_documentation() {
@@ -155,7 +164,7 @@ function print_available_services_information() {
     jq_documentation_get_description="jq -r .documentation.description"
     jq_documentation_get_arguments="jq -r .documentation.arguments[]"
     echo "...looking for containers..."
-    available_services=`docker compose $(print_source_docker_files) ps -a --services`
+    available_services=`docker compose $(print_source_docker_files) config --services`
     echo ""
     echo "found services:"
     for available_service in $available_services
