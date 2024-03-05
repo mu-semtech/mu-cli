@@ -86,7 +86,7 @@ We will go about this in three steps.  First we mount the scripts locally.  Then
 You can develop scripts to add to your project, and you can develop them live by mounting the right folders.  Let's create a script to add to the dispatcher.  Assuming we can live without the current scripts of the dispatcher, we can override the current script by mounting a scripts folder.  Add the following mount-point to the dispatcher:
 
     volumes:
-      - ./scripts/dispatcher/:/scripts/
+      - ./scripts/dispatcher/:/app/scripts/
 
 Make sure you `up` your stack again so the scripts are picked up when running the `mu` command:
 
