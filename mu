@@ -202,20 +202,26 @@ then
         fi
 
         WITH_AUTH=$4
-        if [[ -n "$WITH_AUTH" && ( "$WITH_AUTH" != "--with-auth" ) ]]
+        if [[ -n "$WITH_AUTH" && ( "$WITH_AUTH" != "--with-auth" ) && ( "$WITH_AUTH" != "--with-new-auth" ) ]]
         then
             print_text_block "$WITH_AUTH was not understood" \
                              "" \
-                             "Please specify to use --with-auth or don't supply the parameter." \
+                             "Please specify to use --with-auth or --with-new-auth or don't supply the parameter." \
                              "" \
                              "The expected usage for this command is:" \
-                             "  mu project new [project name] [--with-auth]"
+                             "  mu project new [project name] [--with-auth|--with-new-auth]"
             exit 1
         fi
         echo "Creating new mu project for $PROJECT_NAME"
         if [[ -n "$WITH_AUTH" ]]
         then
-            git clone -b "feature/add-auth" https://github.com/mu-semtech/mu-project.git $PROJECT_NAME
+            if [[ "$WITH_AUTH" == "--with-auth" ]]
+            then
+               git clone -b "feature/add-auth" https://github.com/mu-semtech/mu-project.git $PROJECT_NAME
+            else
+               print_text_block "Will create using mu-cl-auth"
+               git clone -b "feature/mu-cl-auth" https://github.com/mu-semtech/mu-project.git $PROJECT_NAME
+            fi
         else
             git clone https://github.com/mu-semtech/mu-project.git $PROJECT_NAME
         fi
