@@ -719,8 +719,6 @@ then
             echo ""
             echo "  $DOCKER_SERVICE_NAME:"
             echo "    image: semtech/mu-javascript-template:1.8.0"
-            echo "    links:"
-            echo "      - db:database"
             echo "    ports:"
             echo '      - "8888:80"'
             echo '      - "9229:9229"'
@@ -757,8 +755,6 @@ then
             echo ""
             echo "  $DOCKER_SERVICE_NAME:"
             echo "    image: semtech/mu-python-template:2.0.0-beta.1"
-            echo "    links:"
-            echo "      - db:database"
             echo "    ports:"
             echo '      - "8888:80"'
             echo "    environment:"
