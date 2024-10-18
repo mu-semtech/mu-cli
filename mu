@@ -176,12 +176,16 @@ function print_available_services_information() {
 
 if [[ "start" == $1 ]]
 then
-    echo "Launching mu.semte.ch project ..."
     if [[ "dev" == $2 ]]
     then
-        docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+        echo "Launching mu.semte.ch project for development ..."
+        docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d "${@:3}"
+    elif [[ "prod" == $2 ]]
+    then
+        echo "Launching mu.semte.ch project for production ..."
+        docker compose -f docker-compose.yml up -d "${@:3}"
     else
-        docker compose -f docker-compose.yml up -d
+        echo "Second argument should be one of [dev, prod]."
     fi
 elif [[ "logs" == $1 ]]
 then
