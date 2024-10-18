@@ -185,8 +185,7 @@ then
     fi
 elif [[ "logs" == $1 ]]
 then
-    arguments="${@:2}"
-    docker compose `print_source_docker_files` logs -f $arguments
+    docker compose `print_source_docker_files` logs -f "${@:2}"
 elif [[ "project" == $1 ]]
 then
     if [[ "new" == $2 ]]
@@ -435,7 +434,7 @@ then
         folder_name="$script_folder_name"
         entry_point="$script_file_name"
         working_directory="/script"
-        arguments="${@:4}"
+        arguments=("${@:4}")
         echo -n "."
         image_name=`echo "$command_spec" | $interactive_cli $jq_command_get_image`
         echo -n "."
@@ -467,7 +466,7 @@ then
         then
             volume_mounts+=(--volume $PWD:$app_mount_point)
         fi
-        docker run ${network_options[@]} ${volume_mounts[@]} $it -w $working_directory --rm --entrypoint ./$entry_point $image_name $arguments
+        docker run ${network_options[@]} ${volume_mounts[@]} $it -w $working_directory --rm --entrypoint ./$entry_point $image_name "${arguments[@]}"
     elif [[ -f "Dockerfile" ]]
     then
         # A script for developing a microservice
@@ -581,7 +580,7 @@ then
         entry_point="$script_file_name"
         working_directory="/script"
         status_step # 16
-        arguments="${@:3}"
+        arguments=("${@:3}")
         status_step # 17
         image_name=`echo "$command_spec" | $interactive_cli $jq_command_get_image`
         status_step # 18
@@ -607,9 +606,9 @@ then
 
         echo " DONE"
 
-        echo "Executing script $command $arguments"
+        echo "Executing script $command ${arguments[@]}"
 
-        docker run ${docker_volumes[@]} ${docker_environment_variables[@]} $it -w $working_directory --rm --entrypoint ./$entry_point $image_name $arguments
+        docker run ${docker_volumes[@]} ${docker_environment_variables[@]} $it -w $working_directory --rm --entrypoint ./$entry_point $image_name "${arguments[@]}"
         exit 0
     else
         echo "Did not recognise location"
