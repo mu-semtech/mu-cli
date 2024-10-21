@@ -680,7 +680,7 @@ then
             git commit -m "Initializing new mu ruby service"
             echo "You can add the following snippet in your pipeline"
             echo "to hack this service live."
-            DOCKER_SERVICE_NAME=`echo $SERVICE_NAME | sed -e s/-//g`
+            DOCKER_SERVICE_NAME=`echo $SERVICE_NAME | sed -e s/-service$//`
             echo ""
             echo "  $DOCKER_SERVICE_NAME:"
             echo "    image: semtech/mu-ruby-template:3.1.0"
@@ -719,7 +719,7 @@ then
             git commit -m "Initializing new mu javascript service"
             echo "You can add the following snippet in your pipeline"
             echo "to hack this service live."
-            DOCKER_SERVICE_NAME=`echo $SERVICE_NAME | sed -e s/-//g`
+            DOCKER_SERVICE_NAME=`echo $SERVICE_NAME | sed -e s/-service$//`
             echo ""
             echo "  $DOCKER_SERVICE_NAME:"
             echo "    image: semtech/mu-javascript-template:1.8.0"
@@ -755,7 +755,7 @@ then
             git commit -m "Initializing new mu python service"
             echo "You can add the following snippet in your pipeline"
             echo "to hack this service live."
-            DOCKER_SERVICE_NAME=`echo $SERVICE_NAME | sed -e s/-//g`
+            DOCKER_SERVICE_NAME=`echo $SERVICE_NAME | sed -e s/-service$//`
             echo ""
             echo "  $DOCKER_SERVICE_NAME:"
             echo "    image: semtech/mu-python-template:2.0.0-beta.1"
