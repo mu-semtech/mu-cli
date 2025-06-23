@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-MU_CLI_VERSION="1.0.3"
+MU_CLI_VERSION="boom"
 
 ####
 ## Sending command info
@@ -455,6 +455,18 @@ then
         fi
         echo -n "."
 
+        privileged_mode=`echo "$command_spec" | $interactive_cli jq -r '.environment.privileged // false'`
+        echo -n "."
+        privileged=""
+        if [[ true == "$privileged_mode" ]];
+        then
+            read -p "The script you're about to run needs privileged mode. Are you sure? " -n 1 -r
+            if [[ $REPLY =~ ^[Yy]$ ]]
+            then
+                privileged=" --privileged "
+            fi
+        fi
+        echo -n "."
         network_options=$()
         join_networks=`echo "$command_spec" | $interactive_cli jq -r '.environment.join_networks // false'`
         echo -n "."
@@ -470,7 +482,7 @@ then
         then
             volume_mounts+=(--volume $PWD:$app_mount_point)
         fi
-        docker run ${network_options[@]} ${volume_mounts[@]} $it -w $working_directory --rm --entrypoint ./$entry_point $image_name "${arguments[@]}"
+        docker run ${network_options[@]} ${volume_mounts[@]} $privileged $it -w $working_directory --rm --entrypoint ./$entry_point $image_name "${arguments[@]}"
     elif [[ -f "Dockerfile" ]]
     then
         # A script for developing a microservice
@@ -608,11 +620,23 @@ then
 
         status_step # 21
 
+        privileged_mode=`echo "$command_spec" | $interactive_cli jq -r '.environment.privileged // false'`
+        privileged=""
+        if [[ true == "$privileged_mode" ]];
+        then
+            read -p "The script you're about to run needs privileged mode. Are you sure? " -n 1 -r
+            if [[ $REPLY =~ ^[Yy]$ ]]
+            then
+                privileged=" --privileged "
+            fi
+        fi
+        status_step # 22
+
         echo " DONE"
 
         echo "Executing script $command ${arguments[@]}"
 
-        docker run ${docker_volumes[@]} ${docker_environment_variables[@]} $it -w $working_directory --rm --entrypoint ./$entry_point $image_name "${arguments[@]}"
+        docker run ${docker_volumes[@]} ${docker_environment_variables[@]} $privileged $it -w $working_directory --rm --entrypoint ./$entry_point $image_name "${arguments[@]}"
         exit 0
     else
         echo "Did not recognise location"
