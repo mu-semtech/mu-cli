@@ -359,12 +359,7 @@ then
     fi
 elif [[ "script" == $1 ]]
 then
-    # Check if we are in a project or in a service
-    if [[ -f ./docker-compose.yml && -f Dockerfile ]]
-    then
-        echo "mu script is not supported in folders which have a Dockerfile and a docker-compose.yml"
-        exit 1
-    elif [[ -f ./docker-compose.yml ]]
+    if [[ -f ./docker-compose.yml ]]
     then
         service=$2
         command=$3
@@ -460,11 +455,13 @@ then
         privileged=""
         if [[ true == "$privileged_mode" ]];
         then
+            echo
             read -p "The script you're about to run needs privileged mode. Are you sure? " -n 1 -r
             if [[ $REPLY =~ ^[Yy]$ ]]
             then
                 privileged=" --privileged "
             fi
+            echo
         fi
         echo -n "."
         network_options=$()
@@ -624,11 +621,13 @@ then
         privileged=""
         if [[ true == "$privileged_mode" ]];
         then
+            echo
             read -p "The script you're about to run needs privileged mode. Are you sure? " -n 1 -r
             if [[ $REPLY =~ ^[Yy]$ ]]
             then
                 privileged=" --privileged "
             fi
+            echo
         fi
         status_step # 22
 
