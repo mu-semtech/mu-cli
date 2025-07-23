@@ -99,7 +99,7 @@ The `mu` command currently requires some housekeeping so we know how to run your
 Move the following script into the `./scripts/dispatcher/config.json` folder:
 
     {
-      "version": "0.1",
+      "version": "0.2",
       "scripts": [
         {
           "documentation": {
@@ -120,6 +120,8 @@ Move the following script into the `./scripts/dispatcher/config.json` folder:
     }
 
 Important things mentioned here are the mount point for `"app"`, this will mount our mu-project in the `"/data/app/"` folder so we can manipulate the files of our project.  Also note that we indicate the script to run and the image in which to run it, you can use any image and have any set of preinstalled content in there.  The documentation section is used when running `mu project script dispatcher -h`.
+
+From version `0.2` onward, not specifying the `image` will make the service run in the image containing the script config.
 
 #### Implementing the script
 

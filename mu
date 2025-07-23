@@ -372,6 +372,7 @@ then
         ensure_mu_cli_docker
 
         # jq commands
+        jq_documentation_get_version="jq -r '.version'"
         jq_documentation_filter_commands="jq -r '( .scripts[].documentation.command )'"
         jq_documentation_get_command="jq -c '( .scripts[] | select(.documentation.command == \\\"$command\\\") )'"
         jq_documentation_get_description="jq -r .documentation.description"
@@ -417,6 +418,17 @@ then
             print_service_documentation $service
             exit 0
         fi
+
+        version=`sh -c "$interactive_cli bash -c \"$cat_command | $jq_documentation_get_version\""`
+
+        supported_versions=("0.1" "0.2")
+
+        if [[ ! " ${supported_versions[@]} " =~ " ${version} " ]]; then
+            echo ""
+            echo "ERROR: Version $version of script config is not supported by this version of mu-cli"
+            exit 1
+        fi
+
         echo -n "Executing "
         command_spec=`sh -c "$interactive_cli bash -c \"$cat_command | $jq_documentation_get_command\""`
         if [[ -z $command_spec ]] ;
@@ -440,7 +452,13 @@ then
         working_directory="/script"
         arguments=("${@:4}")
         echo -n "."
+
         image_name=`echo "$command_spec" | $interactive_cli $jq_command_get_image`
+        if [[ $image_name == "null" ]]
+        then
+            image_name=$script_container_image_name
+        fi
+
         echo -n "."
         # NOTE: this approach for discovering the project name will
         # not work when running installation scripts for a service
@@ -471,12 +489,13 @@ then
             volume_mounts+=(--volume $PWD:$app_mount_point)
         fi
         docker run ${network_options[@]} ${volume_mounts[@]} $it -w $working_directory --rm --entrypoint ./$entry_point $image_name "${arguments[@]}"
+        # docker run ${network_options[@]} ${volume_mounts[@]} $it -w $working_directory --rm --entrypoint "ls" $image_name "-la"
     elif [[ -f "Dockerfile" ]]
     then
         # A script for developing a microservice
         STATUS_MESSAGE="Discovering script "
         status_echo
-        image_name=`cat Dockerfile | grep -oP "^FROM \\K.*"`
+        script_container_image_name=`cat Dockerfile | grep -oP "^FROM \\K.*"`
         status_step # 1
         command=$2
         interactive_cli="docker exec -i mucli"
@@ -485,6 +504,7 @@ then
         status_step # 2
 
         # jq commands
+        jq_documentation_get_version="jq -r '.version'"
         jq_documentation_filter_commands="jq -r '( .scripts[].documentation.command )'"
         jq_documentation_get_command="jq -c '( .scripts[] | select(.documentation.command == \\\"$command\\\") )'"
         jq_documentation_get_description="jq -r .documentation.description"
@@ -495,7 +515,7 @@ then
 
         status_step # 3
 
-        image_id=`docker images -q $image_name`
+        image_id=`docker images -q $script_container_image_name`
 
         status_step # 4
 
@@ -505,7 +525,7 @@ then
             echo " need to fetch base image."
 
             echo -n "Fetching service base image ... "
-            docker pull $image_name 2> /dev/null
+            docker pull $script_container_image_name 2> /dev/null
             if [[ "$?" -ne "0" ]]
             then
                 echo ""
@@ -518,12 +538,12 @@ then
             echo "DONE"
 
             status_echo
-            image_id=`docker images -q $image_name`
+            image_id=`docker images -q $script_container_image_name`
         fi
 
         status_step # 5
 
-        docker run --name mu_cli_tmp_copy --entrypoint /bin/sh $image_name
+        docker run --name mu_cli_tmp_copy --entrypoint /bin/sh $script_container_image_name
 
         status_step # 6
 
@@ -551,6 +571,16 @@ then
             exit 0
         fi
 
+        version=`sh -c "$interactive_cli bash -c \"$cat_config_command | $jq_documentation_get_version\""`
+
+        supported_versions=("0.1" "0.2")
+
+        if [[ ! " ${supported_versions[@]} " =~ " ${version} " ]]; then
+            echo ""
+            echo "ERROR: Version $version of script config is not supported by this version of mu-cli"
+            exit 1
+        fi
+
         status_step # 10
 
         command_spec=`sh -c "$interactive_cli bash -c \"$cat_config_command | $jq_documentation_get_command\""`
@@ -562,7 +592,7 @@ then
             echo " DONE"
             print_text_block "" \
                              "Error: Script not found" \
-                             "  Could not find script $command in $image_name" \
+                             "  Could not find script $command in $script_container_image_name" \
                              "" \
 
             print_service_scripts_documentation $config_location
@@ -587,6 +617,10 @@ then
         arguments=("${@:3}")
         status_step # 17
         image_name=`echo "$command_spec" | $interactive_cli $jq_command_get_image`
+        if [[ $image_name == "null" ]]
+        then
+            image_name=$script_container_image_name
+        fi
         status_step # 18
         interactive_mode=`echo "$command_spec" | $interactive_cli jq -r '.environment.interactive // false'`
         status_step # 19
