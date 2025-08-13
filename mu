@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-MU_CLI_VERSION="1.0.4"
+MU_CLI_VERSION="1.0.3"
 
 ####
 ## Sending command info
@@ -455,11 +455,34 @@ then
         privileged=""
         if [[ true == "$privileged_mode" ]];
         then
+            entrypoint_script=/tmp/mu/cache/$container_id/scripts/$script_path
             echo
-            read -p "The script you're about to run needs privileged mode. Are you sure? " -n 1 -r
+            read -p "The script you're about to run needs privileged mode. Are you sure? (Y/N) " -n 1 -r
             if [[ $REPLY =~ ^[Yy]$ ]]
             then
+                  suspicious_patterns=(
+                    "wget"
+                )
+                suspicious_found=false
+                suspicious_pat=''
+                for pat in "${suspicious_patterns[@]}"; do
+                    if grep -qi "$pat" "$entrypoint_script"; then
+                        suspicious_found=true
+                        suspicious_pat=$pat
+                        break
+                    fi
+                done
+
+                if $suspicious_found; then
+                 echo
+                 read -p "The script you're about to run has at least one suspicious pattern ('$suspicious_pat'), are you sure(Y/N)? " -n 1 -r
+                 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                   exit 2
+                 fi     
+                fi
                 privileged=" --privileged "
+            else
+                exit 0
             fi
             echo
         fi
