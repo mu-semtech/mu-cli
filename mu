@@ -405,6 +405,7 @@ then
             echo "Cannot execute script without existing container"
             exit 1 # Service did not exist and user refused to create
         fi
+        script_container_image_name=`docker inspect --format '{{ .Config.Image }}' $container_id`
 
         mkdir -p /tmp/mu/cache/$container_id
         docker cp $container_id:/app/scripts /tmp/mu/cache/$container_id
