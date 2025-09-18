@@ -701,7 +701,7 @@ then
             echo "Creating new ruby service for $SERVICE_NAME"
             mkdir $SERVICE_NAME
             cd $SERVICE_NAME
-            echo "FROM semtech/mu-ruby-template:3.1.0" >> Dockerfile
+            echo "FROM semtech/mu-ruby-template:3.2.1" >> Dockerfile
             echo "LABEL maintainer=\"$USER_NAME <$EMAIL>\"" >> Dockerfile
             echo "# see https://github.com/mu-semtech/mu-ruby-template for more info" >> Dockerfile
             echo "# see https://github.com/mu-semtech/mu-ruby-template for more info" >> web.rb
@@ -717,7 +717,7 @@ then
             DOCKER_SERVICE_NAME=`echo $SERVICE_NAME | sed -e s/-service$//`
             echo ""
             echo "  $DOCKER_SERVICE_NAME:"
-            echo "    image: semtech/mu-ruby-template:3.1.0"
+            echo "    image: semtech/mu-ruby-template:3.2.1"
             echo "    ports:"
             echo '      - "8888:80"'
             echo '      - "9229:9229"'
@@ -735,7 +735,7 @@ then
             echo "Creating new javascript service for $SERVICE_NAME"
             mkdir $SERVICE_NAME
             cd $SERVICE_NAME
-            echo "FROM semtech/mu-javascript-template:1.8.0" >> Dockerfile
+            echo "FROM semtech/mu-javascript-template:1.9.1" >> Dockerfile
             echo "LABEL maintainer=\"$USER_NAME <$EMAIL>\"" >> Dockerfile
             echo "" >> Dockerfile
             echo "# see https://github.com/mu-semtech/mu-javascript-template for more info" >> Dockerfile
@@ -756,7 +756,7 @@ then
             DOCKER_SERVICE_NAME=`echo $SERVICE_NAME | sed -e s/-service$//`
             echo ""
             echo "  $DOCKER_SERVICE_NAME:"
-            echo "    image: semtech/mu-javascript-template:1.8.0"
+            echo "    image: semtech/mu-javascript-template:1.9.1"
             echo "    ports:"
             echo '      - "8888:80"'
             echo '      - "9229:9229"'
