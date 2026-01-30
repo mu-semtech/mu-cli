@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# set -o xtrace
 MU_CLI_VERSION="1.2.0"
 
 ####
@@ -366,6 +367,7 @@ then
     jq_documentation_get_arguments="jq -r .documentation.arguments[]"
     jq_command_get_script="jq -r .environment.script"
     jq_command_get_image="jq -r .environment.image"
+    jq_command_get_host_mount_point="jq -r .mounts.host"
     interactive_cli="docker exec -i mucli"
     ensure_mu_cli_docker
 
@@ -429,7 +431,7 @@ then
 
         version=`sh -c "$interactive_cli bash -c \"$cat_config_command | $jq_documentation_get_version\""`
 
-        supported_versions=("0.1" "0.2")
+        supported_versions=("0.1" "0.2" "0.3")
 
         if [[ ! " ${supported_versions[@]} " =~ " ${version} " ]]; then
             echo ""
@@ -451,6 +453,7 @@ then
         fi
         status_step 1
         app_mount_point=`echo "$command_spec" | sh -c "$interactive_cli $jq_command_get_mount_point"`
+        host_mount_point=`echo "$command_spec" | sh -c "$intercative_cli $jq_command_get_host_mount_point"`
         app_folder="$PWD"
         status_step 2
         script_path=`echo "$command_spec" | $interactive_cli $jq_command_get_script`
@@ -498,6 +501,15 @@ then
         then
             volume_mounts+=(--volume $PWD:$app_mount_point)
         fi
+
+        status_step 11
+        if [[ "null" != "$host_mount_point" ]]
+        then
+            $(dirname "$(readlink -f "$0")")/docker-host-script.sh & # NOTE: we should run this as a non-singleton and close it correctly at the right time too
+            sleep 1
+            volume_mounts+=(--volume "$(readlink -f "/tmp/mu-docker-host-socket-dir"):/tmp/mu-docker-host-socket-dir" --volume "/tmp/mu-host/:/tmp/mu-host/" --volume "$(dirname "$(readlink -f "$0")")/docker-client-script.sh:$host_mount_point")
+        fi
+
         docker run ${network_options[@]} ${volume_mounts[@]} $it -w $working_directory --rm --entrypoint ./$entry_point $image_name "${arguments[@]}"
         # docker run ${network_options[@]} ${volume_mounts[@]} $it -w $working_directory --rm --entrypoint "ls" $image_name "-la"
     elif [[ -f "Dockerfile" ]]
