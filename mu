@@ -7,7 +7,8 @@ MU_CLI_VERSION="1.2.0"
 STATUS_MESSAGE=""
 
 function status_echo() {
-    echo -n "$STATUS_MESSAGE";
+    echo ""
+    echo -n "$STATUS_MESSAGE"
 }
 
 function status_step() {
@@ -359,6 +360,15 @@ then
     fi
 elif [[ "script" == $1 ]]
 then
+    jq_documentation_get_version="jq -r '.version'"
+    jq_documentation_filter_commands="jq -r '( .scripts[].documentation.command )'"
+    jq_documentation_get_description="jq -r .documentation.description"
+    jq_documentation_get_arguments="jq -r .documentation.arguments[]"
+    jq_command_get_script="jq -r .environment.script"
+    jq_command_get_image="jq -r .environment.image"
+    interactive_cli="docker exec -i mucli"
+    ensure_mu_cli_docker
+
     # Check if we are in a project or in a service
     if [[ -f ./docker-compose.yml && -f Dockerfile ]]
     then
@@ -366,22 +376,19 @@ then
         exit 1
     elif [[ -f ./docker-compose.yml ]]
     then
+        STATUS_MESSAGE="Discovering script "
+        status_echo
+        status_step 1
         service=$2
         command=$3
-        interactive_cli="docker exec -i mucli"
-        ensure_mu_cli_docker
+
+        status_step 2
 
         # jq commands
-        jq_documentation_get_version="jq -r '.version'"
-        jq_documentation_filter_commands="jq -r '( .scripts[].documentation.command )'"
-        jq_documentation_get_command="jq -c '( .scripts[] | select(.documentation.command == \\\"$command\\\") )'"
-        jq_documentation_get_description="jq -r .documentation.description"
-        jq_documentation_get_arguments="jq -r .documentation.arguments[]"
         jq_command_get_mount_point="jq -r '.mounts.app // false'"
-        jq_command_get_script="jq -r .environment.script"
-        jq_command_get_image="jq -r .environment.image"
+        jq_documentation_get_command="jq -c '( .scripts[] | select(.documentation.command == \\\"$command\\\") )'"
 
-        ensure_mu_cli_docker
+        status_step 3
 
         if [[ "-h" == $service ]] || [[ -z $service ]] ;
         then
@@ -409,7 +416,7 @@ then
 
         mkdir -p /tmp/mu/cache/$container_id
         docker cp $container_id:/app/scripts /tmp/mu/cache/$container_id
-        cat_command="cat /tmp/mu/cache/$container_id/scripts/config.json"
+        cat_config_command="cat /tmp/mu/cache/$container_id/scripts/config.json"
 
         if [[ "-h" == $command ]] || [[ -z $command ]] ;
         then
@@ -420,7 +427,7 @@ then
             exit 0
         fi
 
-        version=`sh -c "$interactive_cli bash -c \"$cat_command | $jq_documentation_get_version\""`
+        version=`sh -c "$interactive_cli bash -c \"$cat_config_command | $jq_documentation_get_version\""`
 
         supported_versions=("0.1" "0.2")
 
@@ -430,8 +437,10 @@ then
             exit 1
         fi
 
-        echo -n "Executing "
-        command_spec=`sh -c "$interactive_cli bash -c \"$cat_command | $jq_documentation_get_command\""`
+        STATUS_MESSAGE="Executing "
+        status_echo
+
+        command_spec=`sh -c "$interactive_cli bash -c \"$cat_config_command | $jq_documentation_get_command\""`
         if [[ -z $command_spec ]] ;
         then
             print_text_block "" \
@@ -440,19 +449,19 @@ then
             print_service_documentation $service
             exit 1
         fi
-        echo -n "."
-        app_mount_point=`echo "$command_spec" | $interactive_cli bash -c "$jq_command_get_mount_point"`
+        status_step 1
+        app_mount_point=`echo "$command_spec" | sh -c "$interactive_cli $jq_command_get_mount_point"`
         app_folder="$PWD"
-        echo -n "."
+        status_step 2
         script_path=`echo "$command_spec" | $interactive_cli $jq_command_get_script`
-        echo -n "."
+        status_step 3
         script_folder_name=`dirname $script_path`
         script_file_name=`basename $script_path`
         folder_name="$script_folder_name"
         entry_point="$script_file_name"
         working_directory="/script"
         arguments=("${@:4}")
-        echo -n "."
+        status_step 4
 
         image_name=`echo "$command_spec" | $interactive_cli $jq_command_get_image`
         if [[ $image_name == "null" ]]
@@ -460,29 +469,29 @@ then
             image_name=$script_container_image_name
         fi
 
-        echo -n "."
+        status_step 5
         # NOTE: this approach for discovering the project name will
         # not work when running installation scripts for a service
         docker_compose_project_name=`docker inspect --format '{{ index .Config.Labels "com.docker.compose.project"}}' $container_id`
-        echo -n "."
+        status_step 6
         interactive_mode=`echo "$command_spec" | $interactive_cli jq -r '.environment.interactive // false'`
-        echo -n "."
+        status_step 7
         it=""
         if [[ true == "$interactive_mode" ]];
         then
             it=" -it "
         fi
-        echo -n "."
+        status_step 8
 
         network_options=$()
         join_networks=`echo "$command_spec" | $interactive_cli jq -r '.environment.join_networks // false'`
-        echo -n "."
+        status_step 9
         if [[ true == "$join_networks" ]]
         then
             default_network_id=`docker network ls -f "label=com.docker.compose.project=$docker_compose_project_name" -f "label=com.docker.compose.network=default" -q`
             network_options=("--network" "$default_network_id")
         fi
-        echo -n "."
+        status_step 10
 
         volume_mounts=(--volume /tmp/mu/cache/$container_id/scripts/$folder_name:/script)
         if [[ false != "$app_mount_point" ]]
@@ -493,32 +502,23 @@ then
         # docker run ${network_options[@]} ${volume_mounts[@]} $it -w $working_directory --rm --entrypoint "ls" $image_name "-la"
     elif [[ -f "Dockerfile" ]]
     then
-        # A script for developing a microservice
         STATUS_MESSAGE="Discovering script "
         status_echo
-        script_container_image_name=`cat Dockerfile | grep -oP "^FROM \\K.*"`
-        status_step # 1
+        status_step 1
         command=$2
-        interactive_cli="docker exec -i mucli"
-        ensure_mu_cli_docker
+        script_container_image_name=`cat Dockerfile | grep -oP "^FROM \\K.*"`
 
-        status_step # 2
+        status_step 2
 
         # jq commands
-        jq_documentation_get_version="jq -r '.version'"
-        jq_documentation_filter_commands="jq -r '( .scripts[].documentation.command )'"
-        jq_documentation_get_command="jq -c '( .scripts[] | select(.documentation.command == \\\"$command\\\") )'"
-        jq_documentation_get_description="jq -r .documentation.description"
-        jq_documentation_get_arguments="jq -r .documentation.arguments[]"
         jq_command_get_mount_point="jq -r .mounts.service"
-        jq_command_get_script="jq -r .environment.script"
-        jq_command_get_image="jq -r .environment.image"
+        jq_documentation_get_command="jq -c '( .scripts[] | select(.documentation.command == \\\"$command\\\") )'"
 
-        status_step # 3
+        status_step 3
 
         image_id=`docker images -q $script_container_image_name`
 
-        status_step # 4
+        status_step 4
 
         # make sure we have the image available
         if [[ -z image_id ]]
@@ -542,29 +542,29 @@ then
             image_id=`docker images -q $script_container_image_name`
         fi
 
-        status_step # 5
+        status_step 5
 
         docker run --name mu_cli_tmp_copy --entrypoint /bin/sh $script_container_image_name
 
-        status_step # 6
+        status_step 6
 
         mkdir -p /tmp/mu/cache/$image_id
 
-        status_step # 7
+        status_step 7
 
         docker cp mu_cli_tmp_copy:/app/scripts /tmp/mu/cache/$image_id 2> /dev/null
 
-        status_step # 8
+        status_step 8
 
         # cleaning up copy container
         docker rm -f mu_cli_tmp_copy 2> /dev/null > /dev/null
 
-        status_step # 9
+        status_step 9
 
         config_location="/tmp/mu/cache/$image_id/scripts/config.json"
         cat_config_command="cat $config_location"
 
-        if [[ "-h" == $command || "" == "$command" ]]
+        if [[ "-h" == $command ]] || [[ -z $command ]] ;
         then
             echo " DONE"
             echo ""
@@ -582,12 +582,12 @@ then
             exit 1
         fi
 
-        status_step # 10
+        status_step 10
+
+        STATUS_MESSAGE="Executing "
+        status_echo
 
         command_spec=`sh -c "$interactive_cli bash -c \"$cat_config_command | $jq_documentation_get_command\""`
-
-        status_step # 11
-
         if [[ -z $command_spec ]] ;
         then
             echo " DONE"
@@ -599,39 +599,36 @@ then
             print_service_scripts_documentation $config_location
             exit 1
         fi
-
-        status_step # 12
-
+        status_step 1
         service_mount_point=`echo "$command_spec" | $interactive_cli $jq_command_get_mount_point`
-        status_step # 13
-
         service_folder="$PWD"
-        status_step # 14
+        status_step 2
         script_path=`echo "$command_spec" | $interactive_cli $jq_command_get_script`
-        status_step # 15
+        status_step 3
         script_folder_name=`dirname $script_path`
         script_file_name=`basename $script_path`
         folder_name="$script_folder_name"
         entry_point="$script_file_name"
         working_directory="/script"
-        status_step # 16
         arguments=("${@:3}")
-        status_step # 17
+        status_step 4
+
         image_name=`echo "$command_spec" | $interactive_cli $jq_command_get_image`
         if [[ $image_name == "null" ]]
         then
             image_name=$script_container_image_name
         fi
-        status_step # 18
+
+        status_step 5
+        status_step 6
         interactive_mode=`echo "$command_spec" | $interactive_cli jq -r '.environment.interactive // false'`
-        status_step # 19
+        status_step 7
         it=""
-        if [[ true = "$interactive_mode" ]];
+        if [[ true == "$interactive_mode" ]];
         then
             it=" -it "
         fi
-
-        status_step # 20
+        status_step 8
 
         # docker arguments
 
@@ -641,7 +638,7 @@ then
         docker_environment_variables=(
             -e SERVICE_HOST_DIR="$PWD/")
 
-        status_step # 21
+        status_step 9
 
         echo " DONE"
 
