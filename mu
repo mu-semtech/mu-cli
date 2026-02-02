@@ -48,6 +48,35 @@ function ensure_mu_cli_docker() {
     fi
 }
 
+function print_command_host_permissions() {
+    command_documentation=$1
+    command_name=`echo "$command_documentation" | $interactive_cli jq -rc '.documentation.command'`
+    permissions=`echo "$command_documentation" | $interactive_cli jq -rc '.permissions.host[].name'`
+    if [[ -z $permissions ]]
+    then
+        echo ""
+        echo "No permissions requested for $command_name"
+    else
+        for permission_name in $permissions
+        do
+            jq_permission_content="jq -c \"( .permissions.host[] | select(.name == \\\"$permission_name\\\") )\""
+            permission_content=`echo "$command_documentation" | $interactive_cli bash -c "$jq_permission_content"`
+            permission_comment=`echo "$permission_content" | $interactive_cli jq -rc '.comment'`
+            permission_command=`echo "$permission_content" | $interactive_cli jq -rc '.command'`
+            print_text_block "  Permission $permission_name" \
+                             "    regex:   $permission_command"\
+                             "    comment: $permission_comment"
+        done
+    fi
+}
+
+function get_command_host_regexes() {
+    command_documentation=$1
+    COMMAND_HOST_REGEXES=`echo "$command_documentation" | $interactive_cli jq -rc '.permissions.host[].command'`
+}
+
+
+
 ####
 ## Ensure the container exists or ask the user if we can create it?
 ##
@@ -505,7 +534,27 @@ then
         status_step 11
         if [[ "null" != "$host_mount_point" ]]
         then
-            $(dirname "$(readlink -f "$0")")/docker-host-script.sh & # NOTE: we should run this as a non-singleton and close it correctly at the right time too
+            # Ask user if we can execute commands
+            echo ""
+            print_text_block "The script would like to execute commands which match the following regular expressions: "
+
+            jq_documentation_get_command_local="jq -c '( .scripts[] | select(.documentation.command == \\\"$command\\\") )'"
+
+            print_command_host_permissions "$command_spec"
+            get_command_host_regexes "$command_spec" # COMMAND_HOST_REGEXES
+
+            read -p "Allow these commands to be executed on your host? [Y/n]: " -n 1 -s -r INPUT
+            case ${INPUT:-Y} in
+                [Yy]*)
+                    echo "Continuing";;
+                [Nn]*)
+                    echo "Insufficient permissions to execute command";
+                    exit 1 ;;
+            esac
+
+            # printf "I have \n%s\n:END:" "$COMMAND_HOST_REGEXES" >&2
+
+            echo -e "$COMMAND_HOST_REGEXES\n:END:" | $(dirname "$(readlink -f "$0")")/docker-host-script.sh & # NOTE: we should run this as a non-singleton and close it correctly at the right time too
             sleep 1
             volume_mounts+=(--volume "$(readlink -f "/tmp/mu-docker-host-socket-dir"):/tmp/mu-docker-host-socket-dir" --volume "/tmp/mu-host/:/tmp/mu-host/" --volume "$(dirname "$(readlink -f "$0")")/docker-client-script.sh:$host_mount_point")
         fi

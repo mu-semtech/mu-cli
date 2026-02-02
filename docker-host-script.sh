@@ -16,22 +16,35 @@ exec 10< "$REQUEST_SOCKET_PATH" # keep the answer socket open
 exec 11> "$ANSWER_SOCKET_PATH" # keep request socket open
 exec 12> "$REQUEST_SOCKET_PATH" # does this keep the socket open when client closes?
 
+function read_allowed_regexes() {
+    ALLOWED_COMMAND_COMBINATIONS=""
+
+    while IFS= read -r line; do
+        [ "$line" = ":END:" ] && break
+        ALLOWED_COMMAND_COMBINATIONS+=("$line")
+    done
+}
+
+ALLOWED_COMMAND_COMBINATIONS=""
+# echo -e "Allowed command combinations\n$ALLOWED_COMMAND_COMBINATIONS" >&2
+read_allowed_regexes
+
 # Not called, but should be implemented to ensure the command may be executed on
 # the host system
 function validate() {
     local command="$1"
     local regex
 
-    ALLOWED_COMMAND_COMBINATIONS="^ls.*
-^docker run.*
-^docker ps.*
-^tree.*
-^docker compose .*"
+    # printf "\nallowed combinations:\n%s" "${ALLOWED_COMMAND_COMBINATIONS[@]}"
 
-    while IFS= read -r regex
+    for regex in "${ALLOWED_COMMAND_COMBINATIONS[@]}"
     do
-        [[ $command =~ $regex ]] && return 0
-    done <<< "$ALLOWED_COMMAND_COMBINATIONS"
+        if [[ "$regex" != "" ]]
+        then
+            # printf "\nComparing %s to %s\n" "$command" $regex >&2
+            [[ "$command" =~ $regex ]] && return 0
+        fi
+    done
     return 1
 }
 
