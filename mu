@@ -75,6 +75,52 @@ function get_command_host_regexes() {
     COMMAND_HOST_REGEXES=`echo "$command_documentation" | $interactive_cli jq -rc '.permissions.host[].command'`
 }
 
+function manage_host_calls() {
+    local host_mount_point=$1
+    local command_spec=$2
+    local command=$3
+
+    if [[ "null" != "$host_mount_point" ]]
+    then
+        # Ask user if we can execute commands
+        echo ""
+        print_text_block "The script would like to execute commands which match the following regular expressions: "
+
+        jq_documentation_get_command_local="jq -c '( .scripts[] | select(.documentation.command == \\\"$command\\\") )'"
+
+        print_command_host_permissions "$command_spec"
+        get_command_host_regexes "$command_spec" # COMMAND_HOST_REGEXES
+
+        read -p "Allow these commands to be executed on your host? [Y/n]: " -n 1 -s -r INPUT
+        case ${INPUT:-Y} in
+            [Yy]*)
+                echo "Continuing";;
+            [Nn]*)
+                echo "Insufficient permissions to execute command";
+                exit 1 ;;
+        esac
+
+        # printf "I have \n%s\n:END:" "$COMMAND_HOST_REGEXES" >&2
+
+        coproc host_script { "$(dirname "$(readlink -f "$0")")/docker-host-script.sh"; }
+        read -r -u "${host_script[0]}" HOST_SCRIPT_SOCKET_FOLDER
+        echo -e "$COMMAND_HOST_REGEXES\n:END:" >&${host_script[1]}
+
+        volume_mounts+=(--volume "${HOST_SCRIPT_SOCKET_FOLDER}:/tmp/mu-docker-host-socket-dir" --volume "/tmp/mu-host/:/tmp/mu-host/" --volume "$(dirname "$(readlink -f "$0")")/docker-client-script.sh:$host_mount_point")
+    fi
+}
+
+function clean_up_host_calls() {
+    if [ -v host_script_PID ]
+    then
+        # kill direct children, then kill main coprocess
+        pkill -P ${host_script_PID}
+        kill -s TERM ${host_script_PID}
+        wait ${host_script_PID}
+    fi
+}
+
+
 
 
 ####
@@ -532,44 +578,13 @@ then
         fi
 
         status_step 11
-        if [[ "null" != "$host_mount_point" ]]
-        then
-            # Ask user if we can execute commands
-            echo ""
-            print_text_block "The script would like to execute commands which match the following regular expressions: "
 
-            jq_documentation_get_command_local="jq -c '( .scripts[] | select(.documentation.command == \\\"$command\\\") )'"
-
-            print_command_host_permissions "$command_spec"
-            get_command_host_regexes "$command_spec" # COMMAND_HOST_REGEXES
-
-            read -p "Allow these commands to be executed on your host? [Y/n]: " -n 1 -s -r INPUT
-            case ${INPUT:-Y} in
-                [Yy]*)
-                    echo "Continuing";;
-                [Nn]*)
-                    echo "Insufficient permissions to execute command";
-                    exit 1 ;;
-            esac
-
-            # printf "I have \n%s\n:END:" "$COMMAND_HOST_REGEXES" >&2
-
-            coproc host_script { "$(dirname "$(readlink -f "$0")")/docker-host-script.sh"; }
-            read -r -u "${host_script[0]}" HOST_SCRIPT_SOCKET_FOLDER
-            echo -e "$COMMAND_HOST_REGEXES\n:END:" >&${host_script[1]}
-            sleep 1
-            volume_mounts+=(--volume "${HOST_SCRIPT_SOCKET_FOLDER}:/tmp/mu-docker-host-socket-dir" --volume "/tmp/mu-host/:/tmp/mu-host/" --volume "$(dirname "$(readlink -f "$0")")/docker-client-script.sh:$host_mount_point")
-        fi
+        manage_host_calls "$host_mount_point" "$command_spec" "$command" # updates volume_mounts
 
         docker run ${network_options[@]} ${volume_mounts[@]} $it -w $working_directory --rm --entrypoint ./$entry_point $image_name "${arguments[@]}"
         # docker run ${network_options[@]} ${volume_mounts[@]} $it -w $working_directory --rm --entrypoint "ls" $image_name "-la"
-        if [ -v host_script_PID ]
-        then
-            # kill direct children, then kill main coprocess
-            pkill -P ${host_script_PID}
-            kill -s TERM ${host_script_PID}
-            wait ${host_script_PID}
-        fi
+
+        clean_up_host_calls
     elif [[ -f "Dockerfile" ]]
     then
         STATUS_MESSAGE="Discovering script "
@@ -644,7 +659,7 @@ then
 
         version=`sh -c "$interactive_cli bash -c \"$cat_config_command | $jq_documentation_get_version\""`
 
-        supported_versions=("0.1" "0.2")
+        supported_versions=("0.1" "0.2" "0.3")
 
         if [[ ! " ${supported_versions[@]} " =~ " ${version} " ]]; then
             echo ""
@@ -672,6 +687,7 @@ then
         status_step 1
         service_mount_point=`echo "$command_spec" | $interactive_cli $jq_command_get_mount_point`
         service_folder="$PWD"
+        host_mount_point=`echo "$command_spec" | sh -c "$intercative_cli $jq_command_get_host_mount_point"`
         status_step 2
         script_path=`echo "$command_spec" | $interactive_cli $jq_command_get_script`
         status_step 3
@@ -702,7 +718,7 @@ then
 
         # docker arguments
 
-        docker_volumes=(
+        volume_mounts=(
             --volume $PWD:$service_mount_point
             --volume /tmp/mu/cache/$image_id/scripts/$folder_name:/script)
         docker_environment_variables=(
@@ -710,11 +726,18 @@ then
 
         status_step 9
 
+        manage_host_calls "$host_mount_point" "$command_spec" "$command" # updates volume_mounts
+
+        status_step 10
+
         echo " DONE"
 
         echo "Executing script $command ${arguments[@]}"
 
-        docker run ${docker_volumes[@]} ${docker_environment_variables[@]} $it -w $working_directory --rm --entrypoint ./$entry_point $image_name "${arguments[@]}"
+        docker run ${volume_mounts[@]} ${docker_environment_variables[@]} $it -w $working_directory --rm --entrypoint ./$entry_point $image_name "${arguments[@]}"
+
+        clean_up_host_calls
+
         exit 0
     else
         echo "Did not recognise location"
