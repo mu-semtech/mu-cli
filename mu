@@ -554,13 +554,22 @@ then
 
             # printf "I have \n%s\n:END:" "$COMMAND_HOST_REGEXES" >&2
 
-            echo -e "$COMMAND_HOST_REGEXES\n:END:" | $(dirname "$(readlink -f "$0")")/docker-host-script.sh & # NOTE: we should run this as a non-singleton and close it correctly at the right time too
+            coproc host_script { "$(dirname "$(readlink -f "$0")")/docker-host-script.sh"; }
+            read -r -u "${host_script[0]}" HOST_SCRIPT_SOCKET_FOLDER
+            echo -e "$COMMAND_HOST_REGEXES\n:END:" >&${host_script[1]}
             sleep 1
-            volume_mounts+=(--volume "$(readlink -f "/tmp/mu-docker-host-socket-dir"):/tmp/mu-docker-host-socket-dir" --volume "/tmp/mu-host/:/tmp/mu-host/" --volume "$(dirname "$(readlink -f "$0")")/docker-client-script.sh:$host_mount_point")
+            volume_mounts+=(--volume "${HOST_SCRIPT_SOCKET_FOLDER}:/tmp/mu-docker-host-socket-dir" --volume "/tmp/mu-host/:/tmp/mu-host/" --volume "$(dirname "$(readlink -f "$0")")/docker-client-script.sh:$host_mount_point")
         fi
 
         docker run ${network_options[@]} ${volume_mounts[@]} $it -w $working_directory --rm --entrypoint ./$entry_point $image_name "${arguments[@]}"
         # docker run ${network_options[@]} ${volume_mounts[@]} $it -w $working_directory --rm --entrypoint "ls" $image_name "-la"
+        if [ -v host_script_PID ]
+        then
+            # kill direct children, then kill main coprocess
+            pkill -P ${host_script_PID}
+            kill -s TERM ${host_script_PID}
+            wait ${host_script_PID}
+        fi
     elif [[ -f "Dockerfile" ]]
     then
         STATUS_MESSAGE="Discovering script "

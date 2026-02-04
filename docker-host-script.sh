@@ -1,20 +1,29 @@
 #!/usr/bin/env bash
 mkdir -p /tmp/mu-host
 SOCKET_TMPDIR=$(mktemp -d -p /tmp/mu-host/) # this temp folder should then get mounted into the docker container
-rm -Rf /tmp/mu-docker-host-socket-dir
-ln -s $SOCKET_TMPDIR /tmp/mu-docker-host-socket-dir
 
-# Create the fifo input stream
+# Create fifo streams
 #
 # This stream will be used for requesting commands.  Each command execution gets
 # their own sockets
+
 REQUEST_SOCKET_PATH="$SOCKET_TMPDIR/in"
 ANSWER_SOCKET_PATH="$SOCKET_TMPDIR/out"
 mkfifo $REQUEST_SOCKET_PATH
 mkfifo $ANSWER_SOCKET_PATH
+
+# For debugging a standard mount point is handy, is it is offered in the mu script:
+#   rm -Rf /tmp/mu-docker-host-socket-dir
+#   ln -s $SOCKET_TMPDIR /tmp/mu-docker-host-socket-dir
+
+# With all files available we inform our users, we're good to go on this path
+echo "$SOCKET_TMPDIR"
+
+# Connect streams
 exec 10< "$REQUEST_SOCKET_PATH" # keep the answer socket open
 exec 11> "$ANSWER_SOCKET_PATH" # keep request socket open
 exec 12> "$REQUEST_SOCKET_PATH" # does this keep the socket open when client closes?
+
 
 function read_allowed_regexes() {
     ALLOWED_COMMAND_COMBINATIONS=""
@@ -48,20 +57,25 @@ function validate() {
     return 1
 }
 
+function cleanup() {
+    rm -f $REQUEST_SOCKET_PATH
+    rm -f $ANSWER_SOCKET_PATH
+    rmdir SOCKET_TMPDIR 2>/dev/null
+    exit 1
+}
+
+trap cleanup EXIT TERM INT
+
 # echo "REQUEST $REQUEST_SOCKET_PATH" >&2
 # echo "ANSWER $ANSWER_SOCKET_PATH" >&2
 
 while true
 do
     read -u 10 REQUEST
-    # echo "Got request $REQUEST" >&2
     if [[ "$REQUEST" == "exit" ]]
     then
         # echo "Request became exit, quitting" >&2
-        rm $REQUEST_SOCKET_PATH
-        rm $ANSWER_SOCKET_PATH
-        rmdir SOCKET_TMPDIR
-        exit 0
+        cleanup
     else
         # Then we validate the command, but we don't do that now, so just true
         if validate "$REQUEST"
