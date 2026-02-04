@@ -260,6 +260,91 @@ When writing a script you may want to read information from the user.  When usin
 Be sure to set the `interactive` option on your command to `true`.
 
 
+### EXPERIMENTAL Executing commands on the host
+How could you restart elasticsearch on the host?  This cannot be executed from within the container so extra permissions are necessary.  It can be used in a docker-compose project or in a template.
+
+If you can in any way avoid this method, you should.  But sometimes you can't.
+
+The `host` directive allows to execute a command on the docker host after the user has given permission.  You can call the host script with the command you want to execute on the host.  It could look like:
+
+```bash
+    #!/bin/env bash
+    host docker compose restart elasticsearch
+```
+
+Let's put this file in `config/scripts/docker-compose-restart/run.sh` and make it executable with `chmod a+x run.sh`.
+
+Next is the metadata for running this command.  Aside from the standard documentation we need to indicate where the host script will be located in our container, and we will need to indicate which commands the host script may allow.
+
+The mount piont is supplied like the `app` or `script` folder:
+
+```json
+    {
+      "version": ...
+      "scripts": [ {
+        ...
+        "mounts": {
+          "host": "/usr/bin/host"
+        },
+        ...
+      } ]
+    }
+```
+
+The permissions get a name (a unique keyword), a comment for informing users, and a command (a regular expression which the script should follow.  We start the regex with `^` and end with `$` to ensure the full line to host has to match.
+
+The `mounts.host` and `permissions.host` blocks are special and we'
+
+```json
+    {
+      "version": ...
+      "scripts": [ {
+        ...
+        "permissions": {
+          "host": [{
+              "name": "restart-elasticsearch",
+              "comment": "Docker command for restarting elasticsearch",
+              "command": "^docker compose restart elasticsearch$"
+            }]
+        }
+        ...
+      } ]
+    }
+```
+
+The complete documentation will look like:
+
+```json
+    {
+      "version": "0.3",
+      "scripts": [
+        {
+          "documentation": {
+            "command": "restart-elastic",
+            "description": "Restarts elasticsearch",
+            "arguments": []
+          },
+          "environment": {
+            "image": "ubuntu",
+            "script": "restart-elastic/execute.sh"
+          },
+          "mounts": {
+            "host": "/usr/bin/host"
+          },
+          "permissions": {
+            "host": [{
+                "name": "restart-elasticsearch",
+                "comment": "Docker command for restarting elasticsearch",
+                "command": "^docker compose restart elasticsearch$"
+              }]
+          }
+        }
+      ]
+    }
+```
+
+When you run the script `mu script project-scripts restart-elastic`, the command will ask you to confirm the right to execute this command on the host and, if you allow, will restart elasticsearch for you.
+
 ## Reasoning
 
 _Background information about the approach we took_
@@ -349,6 +434,12 @@ This section describes the config.json as currently specified.  The section is a
 - **`scripts.environment.script`**: The script which will be ran.  Make sure this script is executable (`chmod a+x your-script.sh`).  If the script can be ran by your container as a script, it's fine.  You could use a shebang like `#!/usr/bin/ruby` as the first line of your script to run a ruby script, or you could have a standard shell script which launches something totally different.
 - **`scripts.mounts.app`**: For scripts which run in a project, this is the place where the full project folder will be mounted.  It allows you to do things like create new files for the project.
 - **`scripts.mounts.service`**: For scripts which run from a template, this is the place where the service file will be mounted.  It allows you to do things like create new files for the service.
+- **`scripts.mounts.host`**: [EXPERIMENTAL] Place for the bash script that lets you execute commands on the host.
+- **`scripts.permissions`**: [EXPERIMENTAL] Extra permissions this script asks.
+- **`scripts.permissions.host`**: [EXPERIMENTAL] Array with extra permissions for the host
+- **`scripts.permissions.host.name`**: [EXPERIMENTAL] Unique name of the access right.
+- **`scripts.permissions.host.comment`**: [EXPERIMENTAL] Human description of the access right.
+- **`scripts.permissions.host.command`**: [EXPERIMENTAL] Regex to which the command will be matched.
 
 ### Scripts API environment variables
 
