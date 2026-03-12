@@ -37,9 +37,9 @@ else
     # trap 'exec 5>&- 6>&- 7>&- 8>&- 2>/dev/null | true' EXIT INT TERM
 
     # Wire up our command
-    cat <$COMMAND_OUTPUT_STREAM_PATH &   # stdout
+    cat <$COMMAND_OUTPUT_STREAM_PATH &  # stdout
     cat <$COMMAND_ERR_STREAM_PATH >&2 &  # stderr
-    cat >$COMMAND_INPUT_STREAM_PATH &    # stdin
+    cat </dev/null >$COMMAND_INPUT_STREAM_PATH &  # stdin
 
     #echo "Will read EXIT CODE" >&2
 
