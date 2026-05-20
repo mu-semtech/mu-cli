@@ -33,7 +33,7 @@ function ensure_mu_cli_docker() {
 
     if [[ -z $container_hash ]] ;
     then
-        docker run --volume /tmp:/tmp -i --name mucli --rm --entrypoint "tail" -d semtech/mu-cli:$MU_CLI_VERSION -f /dev/null
+        docker run --platform linux/amd64 --volume /tmp:/tmp -i --name mucli --rm --entrypoint "tail" -d semtech/mu-cli:$MU_CLI_VERSION -f /dev/null
         if [[ "$?" -ne "0" ]]
         then
             echo "I could not start the mu-cli container.  Aborting operation." >> /dev/stderr
