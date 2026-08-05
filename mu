@@ -528,7 +528,7 @@ then
         fi
         status_step 1
         app_mount_point=`echo "$command_spec" | sh -c "$interactive_cli $jq_command_get_mount_point"`
-        host_mount_point=`echo "$command_spec" | sh -c "$intercative_cli $jq_command_get_host_mount_point"`
+        host_mount_point=`echo "$command_spec" | sh -c "$interactive_cli $jq_command_get_host_mount_point"`
         app_folder="$PWD"
         status_step 2
         script_path=`echo "$command_spec" | $interactive_cli $jq_command_get_script`
@@ -687,7 +687,7 @@ then
         status_step 1
         service_mount_point=`echo "$command_spec" | $interactive_cli $jq_command_get_mount_point`
         service_folder="$PWD"
-        host_mount_point=`echo "$command_spec" | sh -c "$intercative_cli $jq_command_get_host_mount_point"`
+        host_mount_point=`echo "$command_spec" | sh -c "$interactive_cli $jq_command_get_host_mount_point"`
         status_step 2
         script_path=`echo "$command_spec" | $interactive_cli $jq_command_get_script`
         status_step 3
